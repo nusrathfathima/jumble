@@ -1,0 +1,19 @@
+# --- Maven build output ---
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# --- Environment files (never commit secrets) ---
+.env
+.env.local
+.env.*.local
+
+# --- IDEs and editors ---
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# --- Logs ---
+*.log
