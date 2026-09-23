@@ -78,16 +78,42 @@ That returns a JWT (`{"token":"...", "parentId":1, ...}`). Log in again with the
 curl -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d "{\"email\":\"you@example.com\",\"password\":\"a-real-password\"}"
 ```
 
+## Trying out child profiles
+
+Signup/login return a JWT — grab one from step above, then pass it as a Bearer token on everything below (`<TOKEN>` is the `token` field from that response):
+
+```
+curl http://localhost:8080/api/tags
+```
+
+That lists the 7 seeded interest tags. Then create a child:
+
+```
+curl -X POST http://localhost:8080/api/children -H "Content-Type: application/json" -H "Authorization: Bearer <TOKEN>" -d "{\"name\":\"Emma\",\"birthYear\":2019,\"birthMonth\":6,\"interestTagSlugs\":[\"art\",\"building\"]}"
+```
+
+And list them back:
+
+```
+curl http://localhost:8080/api/children -H "Authorization: Bearer <TOKEN>"
+```
+
+There's no `parentId` in either request — the backend reads that from the token, so a parent can only ever see or create their own children.
+
 ## What's here so far
 
 - `JumbleBackendApplication.java` — the entry point.
 - `controller/HealthController.java` — `/api/health`, used to prove the server is alive.
 - `controller/AuthController.java` — real signup and login, BCrypt-hashed passwords, returns a JWT.
-- `controller/TestDataController.java` — **temporary.** Scaffolding used to verify the Parent/Child entities read and write real rows in Neon. Gets deleted once the real child-profile endpoints exist.
+- `controller/ChildController.java` — real child-profile endpoints (`GET/POST /api/children`, `GET /api/children/{id}`), ownership always derived from the JWT.
+- `controller/TagController.java` — `GET /api/tags`, the interest taxonomy, so the frontend never hard-codes the list.
 - `security/` — `JwtService` (issues/verifies tokens), `JwtAuthFilter` (reads the `Authorization` header on every request), `SecurityConfig` (wires it all together: which endpoints need a token, CORS, stateless sessions).
-- `model/` — `Parent` and `Child` JPA entities.
-- `repository/` — `ParentRepository` and `ChildRepository`.
+- `model/` — `Parent`, `Child`, `Tag`, `ChildTag` (declared interests), `ChildTagWeight` (learned ranking weight, seeded at child creation).
+- `repository/` — one per entity above.
 - `config/WebConfig.java` — allows the React frontend to call this API from the browser during local development.
 - `application.properties` — server configuration. Database credentials and the JWT secret are deliberately *not* here — see above.
+- `db/migration/V2__seed_tags.sql` — the 7 MVP interest tags (art, science, outdoor, building, pretend play, cooking, quiet/reading). Adding more later is just a `V3__...` migration.
 
-Real child-profile endpoints, the activity library, and the recommendation endpoint come next.
+`TestDataController.java` has been deleted — it was scaffolding for proving Parent/Child persistence worked, and the real endpoints above have replaced it.
+
+The activity library and the recommendation endpoint come next.

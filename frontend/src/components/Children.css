@@ -1,0 +1,98 @@
+.children-section {
+  max-width: 28rem;
+  margin: 2.5rem auto 0;
+  text-align: left;
+}
+
+.children-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.child-card {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.85rem 1rem;
+}
+
+.child-card .child-name {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.child-card .child-age {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.child-card .child-tags {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.child-tag-pill {
+  font-size: 0.78rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+}
+
+.add-child-form {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.add-child-form h2 {
+  text-align: left;
+}
+
+.add-child-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.add-child-row > div {
+  flex: 1;
+}
+
+.auth-field select {
+  padding: 0.6rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.tag-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.tag-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem 0.3rem 0.5rem;
+  cursor: pointer;
+}
+
+.tag-checkbox input {
+  margin: 0;
+}

@@ -59,12 +59,6 @@ public class SecurityConfig {
                         // too, since it's what the frontend polls to show
                         // "backend status: ok" before anyone has logged in.
                         .requestMatchers("/api/auth/**", "/api/health").permitAll()
-                        // TEMPORARY: left open while TestDataController still
-                        // exists for manual verification against Neon. Remove
-                        // this line in the same change that deletes
-                        // TestDataController — every other endpoint in the
-                        // real API surface requires a valid token.
-                        .requestMatchers("/api/test/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
