@@ -25,6 +25,27 @@ This folder ships with the Java source code already written, but **not** with `p
 4. Click **Generate**. A `.zip` file downloads.
 5. Unzip it, and copy just the `pom.xml` file out of it into this `backend/` folder, replacing nothing (there isn't one here yet). You can discard the rest of what was in that zip — the `src/` folder it generates is a placeholder, and this folder already has the real one.
 
+## Environment variables
+
+Set these in your shell before running the server (Windows Command Prompt shown; use `export` instead of `set` on Mac/Linux):
+
+```
+set DATABASE_URL=jdbc:postgresql://<your-neon-host>/neondb?sslmode=require
+set DATABASE_USERNAME=<your-neon-username>
+set DATABASE_PASSWORD=<your-neon-password>
+set JWT_SECRET=<a base64 string — generate one below>
+```
+
+Generate a `JWT_SECRET` once, and reuse the same value every time you start the server locally (changing it invalidates every token already issued, logging everyone out):
+
+```
+openssl rand -base64 32
+```
+
+No `openssl` on Windows Command Prompt? Run that same command from **Git Bash** (installed alongside Git) instead.
+
+There's deliberately no default for `JWT_SECRET` in `application.properties` — if it's missing, the server refuses to start rather than silently signing tokens with something guessable.
+
 ## Running it locally
 
 ```
@@ -37,17 +58,36 @@ Then open **http://localhost:8080/api/health** in a browser. You should see:
 {"status":"ok","service":"jumble-backend"}
 ```
 
-## Running the test
+## Running the tests
 
 ```
 mvn test
 ```
 
+## Trying out auth
+
+With the server running, from a second Command Prompt window:
+
+```
+curl -X POST http://localhost:8080/api/auth/signup -H "Content-Type: application/json" -d "{\"email\":\"you@example.com\",\"password\":\"a-real-password\",\"displayName\":\"Your Name\"}"
+```
+
+That returns a JWT (`{"token":"...", "parentId":1, ...}`). Log in again with the same credentials to confirm it works both ways:
+
+```
+curl -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d "{\"email\":\"you@example.com\",\"password\":\"a-real-password\"}"
+```
+
 ## What's here so far
 
-- `JumbleBackendApplication.java` — the entry point. You won't need to change this again.
-- `controller/HealthController.java` — the one endpoint that exists right now, `/api/health`, used to prove the server is alive.
-- `config/WebConfig.java` — allows the React frontend to call this API from the browser during local development (see the comments in the file for why this is necessary).
-- `application.properties` — server configuration. Database credentials are deliberately *not* here (see the comments in that file).
+- `JumbleBackendApplication.java` — the entry point.
+- `controller/HealthController.java` — `/api/health`, used to prove the server is alive.
+- `controller/AuthController.java` — real signup and login, BCrypt-hashed passwords, returns a JWT.
+- `controller/TestDataController.java` — **temporary.** Scaffolding used to verify the Parent/Child entities read and write real rows in Neon. Gets deleted once the real child-profile endpoints exist.
+- `security/` — `JwtService` (issues/verifies tokens), `JwtAuthFilter` (reads the `Authorization` header on every request), `SecurityConfig` (wires it all together: which endpoints need a token, CORS, stateless sessions).
+- `model/` — `Parent` and `Child` JPA entities.
+- `repository/` — `ParentRepository` and `ChildRepository`.
+- `config/WebConfig.java` — allows the React frontend to call this API from the browser during local development.
+- `application.properties` — server configuration. Database credentials and the JWT secret are deliberately *not* here — see above.
 
-Database connection, the entity classes, and the real endpoints come next.
+Real child-profile endpoints, the activity library, and the recommendation endpoint come next.
