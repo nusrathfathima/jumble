@@ -80,10 +80,10 @@ curl -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/
 
 ## Trying out child profiles
 
-Signup/login return a JWT — grab one from step above, then pass it as a Bearer token on everything below (`<TOKEN>` is the `token` field from that response):
+Signup/login return a JWT — grab one from step above, then pass it as a Bearer token on everything below (`<TOKEN>` is the `token` field from that response — every endpoint below requires it, including the reads):
 
 ```
-curl http://localhost:8080/api/tags
+curl http://localhost:8080/api/tags -H "Authorization: Bearer <TOKEN>"
 ```
 
 That lists the 7 seeded interest tags. Then create a child:
@@ -100,6 +100,26 @@ curl http://localhost:8080/api/children -H "Authorization: Bearer <TOKEN>"
 
 There's no `parentId` in either request — the backend reads that from the token, so a parent can only ever see or create their own children.
 
+## Trying out materials and inventory
+
+```
+curl http://localhost:8080/api/materials -H "Authorization: Bearer <TOKEN>"
+```
+
+Lists the full material catalog (~32 items across kitchen, craft, recycling, outdoor, other). Note each one's `id` — you'll need a few for the next step.
+
+```
+curl http://localhost:8080/api/inventory -H "Authorization: Bearer <TOKEN>"
+```
+
+Should come back empty (`[]`) the first time — nothing's been saved yet.
+
+```
+curl -X PUT http://localhost:8080/api/inventory -H "Content-Type: application/json" -H "Authorization: Bearer <TOKEN>" -d "{\"materialIds\":[1,2,3]}"
+```
+
+Swap `1,2,3` for real ids from the materials list. This call **replaces** the whole inventory with exactly this set — it's not an "add to" call, so submitting `[1,2,3]` and later `[2,3]` drops material `1`. Run the `GET /api/inventory` call again afterward to confirm it comes back matching what you just sent.
+
 ## What's here so far
 
 - `JumbleBackendApplication.java` — the entry point.
@@ -107,13 +127,18 @@ There's no `parentId` in either request — the backend reads that from the toke
 - `controller/AuthController.java` — real signup and login, BCrypt-hashed passwords, returns a JWT.
 - `controller/ChildController.java` — real child-profile endpoints (`GET/POST /api/children`, `GET /api/children/{id}`), ownership always derived from the JWT.
 - `controller/TagController.java` — `GET /api/tags`, the interest taxonomy, so the frontend never hard-codes the list.
+- `controller/MaterialController.java` — `GET /api/materials`, the full supply catalog.
+- `controller/InventoryController.java` — `GET/PUT /api/inventory`, the logged-in parent's household inventory.
 - `security/` — `JwtService` (issues/verifies tokens), `JwtAuthFilter` (reads the `Authorization` header on every request), `SecurityConfig` (wires it all together: which endpoints need a token, CORS, stateless sessions).
-- `model/` — `Parent`, `Child`, `Tag`, `ChildTag` (declared interests), `ChildTagWeight` (learned ranking weight, seeded at child creation).
+- `model/` — `Parent`, `Child`, `Tag`, `ChildTag` (declared interests), `ChildTagWeight` (learned ranking weight, seeded at child creation), `Material`, `ParentInventory`.
 - `repository/` — one per entity above.
 - `config/WebConfig.java` — allows the React frontend to call this API from the browser during local development.
 - `application.properties` — server configuration. Database credentials and the JWT secret are deliberately *not* here — see above.
 - `db/migration/V2__seed_tags.sql` — the 7 MVP interest tags (art, science, outdoor, building, pretend play, cooking, quiet/reading). Adding more later is just a `V3__...` migration.
+- `db/migration/V3__seed_materials.sql` — a starter material catalog (~32 items). Same additive pattern as the tags.
 
 `TestDataController.java` has been deleted — it was scaffolding for proving Parent/Child persistence worked, and the real endpoints above have replaced it.
+
+**A note on `Short` vs `Integer`:** `Tag.id` and `Material.id` are both `Short` in Java, not `Integer`, because their database columns are `SMALLINT`. Hibernate's schema validation checks the exact column type, and this mismatch caused a real startup failure earlier in this project — worth remembering if a future entity maps to a `SMALLINT` column (anything with `GENERATED ALWAYS AS IDENTITY` on a `SMALLINT` in the schema doc, which is the small lookup tables like `tag` and `material`, as opposed to `BIGINT` ones like `parent` and `child`, which correctly use `Long`).
 
 The activity library and the recommendation endpoint come next.
