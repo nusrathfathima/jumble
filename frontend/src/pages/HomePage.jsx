@@ -5,6 +5,7 @@ import { listTags } from '../api/tags'
 import { ChildList } from '../components/ChildList'
 import { AddChildForm } from '../components/AddChildForm'
 import { InventoryChecklist } from '../components/InventoryChecklist'
+import { SuggestionsPanel } from '../components/SuggestionsPanel'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
@@ -70,6 +71,8 @@ export function HomePage() {
       </div>
 
       <InventoryChecklist />
+
+      {!loading && <SuggestionsPanel childList={children} />}
     </div>
   )
 }

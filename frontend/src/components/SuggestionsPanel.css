@@ -1,0 +1,72 @@
+.suggestions-section {
+  max-width: 28rem;
+  margin: 2.5rem auto 0;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.suggestions-section h2 {
+  text-align: left;
+}
+
+.suggestions-form-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.suggestions-form-row .auth-field {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.suggestions-form-row-spaced {
+  margin-top: 0.75rem;
+}
+
+.suggestions-submit {
+  margin-top: 1rem;
+}
+
+.suggestions-error {
+  margin-top: 0.75rem;
+}
+
+.suggestions-list {
+  list-style: none;
+  padding: 0;
+  margin: 1.25rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.suggestion-card {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.9rem 1rem;
+}
+
+.suggestion-card .suggestion-title {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.suggestion-card .suggestion-duration {
+  font-size: 0.85rem;
+  color: var(--text);
+  margin: 0.15rem 0 0.4rem;
+}
+
+.suggestion-card .suggestion-explanation {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.suggestions-empty {
+  margin-top: 1rem;
+  color: var(--text);
+  font-size: 0.9rem;
+}

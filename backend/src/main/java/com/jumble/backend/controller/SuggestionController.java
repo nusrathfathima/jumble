@@ -1,0 +1,140 @@
+package com.jumble.backend.controller;
+
+import com.jumble.backend.model.Child;
+import com.jumble.backend.model.ChildTagWeight;
+import com.jumble.backend.repository.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * The centrepiece endpoint — schema doc section 6's query, wired up to a
+ * real child and a real household. Everything else built so far (child
+ * profiles and their tag weights, the material catalog, household
+ * inventory, the activity library) exists to feed this one endpoint.
+ */
+@RestController
+@RequestMapping("/api/children/{childId}/suggestions")
+public class SuggestionController {
+
+    private static final Set<String> VALID_LOCATIONS = Set.of("INDOOR", "OUTDOOR", "EITHER");
+
+    private final ChildRepository childRepository;
+    private final ActivityRepository activityRepository;
+    private final ActivityTagRepository activityTagRepository;
+    private final ChildTagWeightRepository childTagWeightRepository;
+
+    public SuggestionController(
+            ChildRepository childRepository,
+            ActivityRepository activityRepository,
+            ActivityTagRepository activityTagRepository,
+            ChildTagWeightRepository childTagWeightRepository) {
+        this.childRepository = childRepository;
+        this.activityRepository = activityRepository;
+        this.activityTagRepository = activityTagRepository;
+        this.childTagWeightRepository = childTagWeightRepository;
+    }
+
+    public record SuggestionView(
+            Long activityId, String title, short durationMinutes, double score, String explanation) {
+    }
+
+    public record ErrorResponse(String message) {
+    }
+
+    private Long currentParentId() {
+        return (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getSuggestions(
+            @PathVariable Long childId,
+            @RequestParam(defaultValue = "30") int availableMinutes,
+            @RequestParam(defaultValue = "3") int maxMessLevel,
+            @RequestParam(defaultValue = "EITHER") String locationType,
+            // Default matches the schema doc's own chosen default (section 0)
+            @RequestParam(defaultValue = "14") int repeatWindowDays) {
+
+        Child child = childRepository.findById(childId).orElse(null);
+        // Same "404 either way" ownership pattern as ChildController: a
+        // child that exists but belongs to someone else looks identical
+        // to one that doesn't exist at all.
+        if (child == null || !child.getParent().getId().equals(currentParentId())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (!VALID_LOCATIONS.contains(locationType)) {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponse("locationType must be one of INDOOR, OUTDOOR, EITHER"));
+        }
+        if (maxMessLevel < 1 || maxMessLevel > 3) {
+            return ResponseEntity.badRequest().body(new ErrorResponse("maxMessLevel must be between 1 and 3"));
+        }
+        if (availableMinutes <= 0) {
+            return ResponseEntity.badRequest().body(new ErrorResponse("availableMinutes must be positive"));
+        }
+
+        // The child's current weight for every tag, keyed by tag id — used
+        // below to name which of the child's interests each suggestion
+        // actually matches, per the schema doc's "explain this suggestion"
+        // feature (section 7).
+        Map<Short, ChildTagWeight> weightsByTagId = childTagWeightRepository.findByChildId(childId).stream()
+                .collect(Collectors.toMap(w -> w.getTag().getId(), w -> w));
+
+        List<ActivityRepository.SuggestionProjection> rows = activityRepository.findSuggestions(
+                childId, availableMinutes, maxMessLevel, locationType, repeatWindowDays);
+
+        List<SuggestionView> views = rows.stream()
+                .map(row -> new SuggestionView(
+                        row.getId(),
+                        row.getTitle(),
+                        row.getDurationMinutes(),
+                        row.getScore(),
+                        buildExplanation(row, weightsByTagId, availableMinutes, maxMessLevel)))
+                .toList();
+
+        return ResponseEntity.ok(views);
+    }
+
+    /**
+     * Assembles the explanation entirely from facts already in hand — no
+     * extra queries beyond the one tag lookup — so it's a faithful
+     * description of the computation the score came from, not a
+     * plausible-sounding story invented after the fact. Weather isn't
+     * factored in yet (that's a separate, not-yet-built integration), so
+     * it's simply omitted rather than faked.
+     */
+    private String buildExplanation(
+            ActivityRepository.SuggestionProjection row,
+            Map<Short, ChildTagWeight> weightsByTagId,
+            int availableMinutes,
+            int maxMessLevel) {
+
+        List<String> matchedTagNames = activityTagRepository.findByActivityId(row.getId()).stream()
+                .map(at -> weightsByTagId.get(at.getTag().getId()))
+                .filter(w -> w != null && w.getWeight() > 1.0f)
+                .sorted(Comparator.comparingDouble(ChildTagWeight::getWeight).reversed())
+                .limit(2)
+                .map(w -> w.getTag().getDisplayName())
+                .toList();
+
+        StringBuilder explanation = new StringBuilder();
+        if (!matchedTagNames.isEmpty()) {
+            explanation.append("Matches an interest in ").append(String.join(" and ", matchedTagNames)).append(". ");
+        }
+        explanation.append("Fits your ").append(availableMinutes).append("-minute window");
+        if (maxMessLevel < 3) {
+            explanation.append(" and mess-level limit");
+        }
+        explanation.append(". You have everything needed for it.");
+
+        return explanation.toString();
+    }
+}
