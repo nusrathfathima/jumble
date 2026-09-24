@@ -1,7 +1,17 @@
 import { useState } from 'react'
 import { getSuggestions } from '../api/suggestions'
+import { recordCompletion } from '../api/completions'
 import { ApiError } from '../api/client'
 import './SuggestionsPanel.css'
+
+// Rating buttons shown on each suggestion card. The value sent to the
+// backend has to match the CHECK constraint on completion.rating exactly
+// (LOVED | OK | SKIPPED) — see CompletionController.RecordCompletionRequest.
+const RATINGS = [
+  { value: 'LOVED', label: 'Loved it' },
+  { value: 'OK', label: 'It was okay' },
+  { value: 'SKIPPED', label: 'Skipped' },
+]
 
 export function SuggestionsPanel({ childList }) {
   const [childId, setChildId] = useState(childList[0]?.id ?? '')
@@ -12,11 +22,17 @@ export function SuggestionsPanel({ childList }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  // Keyed by activityId: 'submitting', 'done', or an error message string.
+  // A plain object rather than one shared status, since several cards can
+  // be in different states at once (one already rated, another mid-submit).
+  const [feedbackStatus, setFeedbackStatus] = useState({})
+
   async function handleSubmit(event) {
     event.preventDefault()
     setError(null)
     setLoading(true)
     setSuggestions(null)
+    setFeedbackStatus({})
 
     try {
       const result = await getSuggestions(childId, {
@@ -29,6 +45,17 @@ export function SuggestionsPanel({ childList }) {
       setError(err instanceof ApiError ? err.message : 'Could not get suggestions right now.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleFeedback(activityId, rating) {
+    setFeedbackStatus((prev) => ({ ...prev, [activityId]: 'submitting' }))
+    try {
+      await recordCompletion(childId, { activityId, rating })
+      setFeedbackStatus((prev) => ({ ...prev, [activityId]: 'done' }))
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Could not save that — try again.'
+      setFeedbackStatus((prev) => ({ ...prev, [activityId]: message }))
     }
   }
 
@@ -120,13 +147,44 @@ export function SuggestionsPanel({ childList }) {
 
       {suggestions && suggestions.suggestions.length > 0 && (
         <ul className="suggestions-list">
-          {suggestions.suggestions.map((s) => (
-            <li className="suggestion-card" key={s.activityId}>
-              <div className="suggestion-title">{s.title}</div>
-              <div className="suggestion-duration">{s.durationMinutes} minutes</div>
-              <div className="suggestion-explanation">{s.explanation}</div>
-            </li>
-          ))}
+          {suggestions.suggestions.map((s) => {
+            const status = feedbackStatus[s.activityId]
+            const isDone = status === 'done'
+            const isSubmitting = status === 'submitting'
+            const errorMessage = status && status !== 'submitting' && status !== 'done' ? status : null
+
+            return (
+              <li className="suggestion-card" key={s.activityId}>
+                <div className="suggestion-title">{s.title}</div>
+                <div className="suggestion-duration">{s.durationMinutes} minutes</div>
+                <div className="suggestion-explanation">{s.explanation}</div>
+
+                {isDone ? (
+                  <p className="feedback-done">
+                    Thanks — that&rsquo;s saved, and it&rsquo;ll shape what gets suggested next time.
+                  </p>
+                ) : (
+                  <div className="feedback-row">
+                    <span className="feedback-label">Did you try this?</span>
+                    <div className="feedback-buttons">
+                      {RATINGS.map((r) => (
+                        <button
+                          key={r.value}
+                          type="button"
+                          className="feedback-button"
+                          disabled={isSubmitting}
+                          onClick={() => handleFeedback(s.activityId, r.value)}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                    {errorMessage && <div className="auth-error suggestions-error">{errorMessage}</div>}
+                  </div>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>

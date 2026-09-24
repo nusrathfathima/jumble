@@ -162,6 +162,33 @@ A few things worth deliberately testing to see the filtering actually work, not 
 - **Zero-material variety:** with inventory empty, run the suggestions call a few times with slightly different `availableMinutes`/`maxMessLevel`/`locationType` combinations for the same child — you should see a genuine mix of the zero-material activities rather than always the same single one.
 - **The explanation text:** if the child has declared interests (from `interestTagSlugs` at creation) or has otherwise-elevated tag weights, an activity matching those tags should say so in its `explanation` field, e.g. "Matches an interest in Science."
 
+## Trying out the feedback loop
+
+This is what makes suggestions actually get smarter instead of only reflecting a child's declared interests forever. Recording a completion does two things at once: it saves the history row, and it nudges that activity's tags' weights up or down for that child (`+0.30` loved, `+0.05` ok, `-0.20` skipped, clamped to `[0.2, 3.0]` — schema doc section 5).
+
+Pick a real activity id and child id, then mark it loved:
+
+```
+curl -X POST http://localhost:8080/api/children/1/completions -H "Content-Type: application/json" -H "Authorization: Bearer <TOKEN>" -d "{\"activityId\":4,\"rating\":\"LOVED\"}"
+```
+
+`rating` must be exactly `LOVED`, `OK`, or `SKIPPED` — anything else comes back as a 400 with a validation message. `note` is optional free text, also fine to leave out entirely.
+
+List a child's history back:
+
+```
+curl http://localhost:8080/api/children/1/completions -H "Authorization: Bearer <TOKEN>"
+```
+
+A few things worth deliberately testing:
+
+- **Weights actually move:** request suggestions for that child before and after marking an activity `LOVED` — its tag(s) should score higher afterward, and the `explanation` field on any other activity sharing that tag should start saying "Matches an interest in ..." for that tag if it didn't before.
+- **Repeat suppression:** mark an activity as completed (any rating), then immediately request suggestions again with the same filters that used to return it — it should no longer appear for `repeatWindowDays` (14 by default). Pass `repeatWindowDays=0` to bypass this while testing, since otherwise you'd have to wait two weeks to see it come back.
+- **The clamp:** mark the same activity `LOVED` repeatedly (six or seven times) for one child — the weight should stop climbing once it hits `3.0`, never going higher, matching `chk_weight_range` in the database.
+- **Validation:** try `rating: "loved"` (lowercase) or `rating: "MEH"` — both should come back as a 400 with a message telling you the allowed values, not a 500 or a silent no-op.
+
+In the browser, each suggestion card now has three feedback buttons ("Loved it" / "It was okay" / "Skipped") underneath it. Clicking one saves the completion and swaps the buttons for a short confirmation message.
+
 ## What's here so far
 
 - `JumbleBackendApplication.java` — the entry point.
@@ -185,9 +212,11 @@ A few things worth deliberately testing to see the filtering actually work, not 
 - `controller/SuggestionController.java` — `GET /api/children/{id}/suggestions`, the centerpiece "get a suggestion" endpoint: filters the library by the child's age, the time/mess/location you specify, and what materials you actually have, then ranks by the child's interest weights and returns a plain-English explanation with each result. Now also returns a `nearMisses` list — activities that almost qualified, missing only specific materials — whenever the main `suggestions` list comes back empty.
 - `model/` — now also `Activity`, `ActivityTag`, `ActivityMaterial`, `ActivityStep`, matching the new `activity`, `activity_tag`, `activity_material`, and `activity_step` tables.
 - `repository/` — `ActivityRepository` (includes both the native ranking query behind `suggestions` and the native near-miss query behind `nearMisses`), `ActivityTagRepository`, `ActivityMaterialRepository`, `ActivityStepRepository`, and `ChildTagWeightRepository` gained a lookup used to build the suggestion explanations.
+- `controller/CompletionController.java` — `GET/POST /api/children/{id}/completions`, the feedback loop: recording a rated completion saves the history row (which the suggestions query's repeat suppression reads) and nudges that activity's tags' weights up or down for that child in the same transaction (schema doc section 5).
+- `model/Completion.java` and `repository/CompletionRepository.java` — the `completion` table's entity, plus the native weight-adjustment `UPDATE` from schema doc section 5, ported the same way the suggestions and near-miss queries were: as a native query, because it's a plain, well-understood `UPDATE ... WHERE tag_id IN (subquery)`, not something JPQL or Criteria API would express any more clearly.
 
 `TestDataController.java` has been deleted — it was scaffolding for proving Parent/Child persistence worked, and the real endpoints above have replaced it.
 
 **A note on `Short` vs `Integer`:** `Tag.id`, `Material.id`, and the small numeric fields on `Activity`/`ActivityStep` (`minAgeYears`, `maxAgeYears`, `durationMinutes`, `messLevel`, `stepNumber`) are all `Short` in Java, not `Integer`, because their database columns are `SMALLINT`. Hibernate's schema validation checks the exact column type, and this mismatch caused a real startup failure earlier in this project — worth remembering if a future entity maps to a `SMALLINT` column (anything with `GENERATED ALWAYS AS IDENTITY` on a `SMALLINT` in the schema doc, which is the small lookup tables and small numeric fields, as opposed to `BIGINT` ones like `parent`, `child`, and `activity` ids, which correctly use `Long`).
 
-Next up: the feedback loop (marking an activity loved/meh/skipped), which is what actually starts suppressing recent repeats and adjusting each child's interest weights over time.
+Next up: history/stats screens (a simple "what has this child done" view built on `GET /api/children/{id}/completions`, which already exists), and eventually weather-aware filtering.
