@@ -1,27 +1,32 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '../context/AuthContext'
 import { listChildren } from '../api/children'
 import { listTags } from '../api/tags'
-import { ChildList } from '../components/ChildList'
-import { AddChildForm } from '../components/AddChildForm'
-import { InventoryChecklist } from '../components/InventoryChecklist'
 import { SuggestionsPanel } from '../components/SuggestionsPanel'
+import { ManageDrawer } from '../components/ManageDrawer'
+import Box from '@mui/material/Box'
+import Container from '@mui/material/Container'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import CircularProgress from '@mui/material/CircularProgress'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
-
+// The signed-in parent's name and the log out button live in TopBar now,
+// shown above every page rather than just this one — useAuth isn't
+// needed here anymore for that.
+//
+// Layout: day-to-day, this app is just "get a suggestion" — children and
+// inventory are occasional setup tasks, not something a parent looks at
+// every visit. So the home page's only job is the suggestion form itself,
+// given real room to breathe; children and inventory both live in the
+// ManageDrawer, opened on purpose via the button below, instead of
+// competing for space on the main screen.
 export function HomePage() {
-  const { parent, logout } = useAuth()
-  const [backendStatus, setBackendStatus] = useState('checking...')
   const [children, setChildren] = useState([])
   const [tags, setTags] = useState([])
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/api/health`)
-      .then((res) => res.json())
-      .then((data) => setBackendStatus(data.status))
-      .catch(() => setBackendStatus('unreachable'))
-  }, [])
+  const [manageOpen, setManageOpen] = useState(false)
 
   useEffect(() => {
     Promise.all([listChildren(), listTags()])
@@ -41,38 +46,60 @@ export function HomePage() {
     setChildren((prev) => [...prev, child])
   }
 
+  const manageLabel = loading
+    ? 'Loading…'
+    : `${children.length} child${children.length === 1 ? '' : 'ren'} · manage children & supplies`
+
   return (
-    <div className="app">
-      <h1>Jumble</h1>
-      <p className="tagline">
-        Only suggests things you can actually do right now, with what you
-        already have.
-      </p>
-      <p className="status">
-        Backend status: <strong>{backendStatus}</strong>
-      </p>
-      <p className="status">
-        Logged in as <strong>{parent?.displayName || parent?.email}</strong>
-      </p>
-      <button className="auth-submit" onClick={logout} type="button">
-        Log out
-      </button>
+    <Box sx={{ pb: 6 }}>
+      <Container maxWidth="sm" sx={{ mt: { xs: 4, sm: 6 } }}>
+        <Stack spacing={3}>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h4" gutterBottom>
+              What should we do today?
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Only suggests things you can actually do right now, with what you already have.
+            </Typography>
+          </Box>
 
-      <div className="children-section">
-        <h2>Your children</h2>
-        {loading ? (
-          <p className="status">Loading…</p>
-        ) : (
-          <>
-            <ChildList childList={children} tags={tags} />
-            <AddChildForm tags={tags} onChildAdded={handleChildAdded} />
-          </>
-        )}
-      </div>
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Button variant="outlined" onClick={() => setManageOpen(true)}>
+              {manageLabel}
+            </Button>
+          </Box>
 
-      <InventoryChecklist />
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : children.length === 0 ? (
+            <Card>
+              <CardContent sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="h6" gutterBottom>
+                  Add your first child to get started
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Suggestions are tailored to each child&rsquo;s age and interests.
+                </Typography>
+                <Button variant="contained" onClick={() => setManageOpen(true)}>
+                  Add a child
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <SuggestionsPanel childList={children} />
+          )}
+        </Stack>
+      </Container>
 
-      {!loading && <SuggestionsPanel childList={children} />}
-    </div>
+      <ManageDrawer
+        open={manageOpen}
+        onClose={() => setManageOpen(false)}
+        childList={children}
+        tags={tags}
+        onChildAdded={handleChildAdded}
+      />
+    </Box>
   )
 }

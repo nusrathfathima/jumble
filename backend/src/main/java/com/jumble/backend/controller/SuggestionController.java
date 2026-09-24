@@ -111,7 +111,7 @@ public class SuggestionController {
                         row.getId(),
                         row.getTitle(),
                         row.getDurationMinutes(),
-                        row.getScore(),
+                        roundScore(row.getScore()),
                         buildExplanation(row, weightsByTagId, availableMinutes, maxMessLevel)))
                 .toList();
 
@@ -131,6 +131,19 @@ public class SuggestionController {
                 : List.of();
 
         return ResponseEntity.ok(new SuggestionsResponse(views, nearMisses));
+    }
+
+    /**
+     * SUM(real) in Postgres, once it comes through the JDBC driver as a
+     * Java double, prints ugly artifacts like 3.5999999046325684 instead
+     * of 3.6 — harmless for the ranking itself (ORDER BY isn't affected
+     * by trailing float noise), but not something to show a parent in
+     * the UI. Rounding to 2 decimal places here, right before the value
+     * leaves the API, keeps the internal computation exact while making
+     * the number that's actually displayed clean.
+     */
+    private double roundScore(double score) {
+        return Math.round(score * 100.0) / 100.0;
     }
 
     /**

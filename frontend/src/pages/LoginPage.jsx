@@ -1,8 +1,16 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link as RouterLink } from 'react-router-dom'
+import Box from '@mui/material/Box'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Typography from '@mui/material/Typography'
+import TextField from '@mui/material/TextField'
+import Button from '@mui/material/Button'
+import Alert from '@mui/material/Alert'
+import Link from '@mui/material/Link'
+import Stack from '@mui/material/Stack'
 import { useAuth } from '../context/AuthContext'
 import { ApiError } from '../api/client'
-import './AuthForm.css'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -35,45 +43,63 @@ export function LoginPage() {
   }
 
   return (
-    <div className="auth-page">
-      <h1>Welcome back</h1>
-      <p className="auth-subtitle">Log in to see today's activity suggestions.</p>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        px: 2,
+        py: { xs: 6, sm: 10 },
+      }}
+    >
+      <Card sx={{ width: '100%', maxWidth: 420 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Typography variant="h4" align="center" gutterBottom>
+            Welcome back
+          </Typography>
+          <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 3 }}>
+            Log in to see today&rsquo;s activity suggestions.
+          </Typography>
 
-      <form className="auth-form" onSubmit={handleSubmit}>
-        {error && <div className="auth-error">{error}</div>}
+          <Box component="form" onSubmit={handleSubmit}>
+            <Stack spacing={2}>
+              {error && <Alert severity="error">{error}</Alert>}
 
-        <div className="auth-field">
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={form.email}
-            onChange={updateField('email')}
-            autoComplete="email"
-          />
-        </div>
+              <TextField
+                id="email"
+                label="Email"
+                type="email"
+                required
+                fullWidth
+                value={form.email}
+                onChange={updateField('email')}
+                autoComplete="email"
+              />
 
-        <div className="auth-field">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            required
-            value={form.password}
-            onChange={updateField('password')}
-            autoComplete="current-password"
-          />
-        </div>
+              <TextField
+                id="password"
+                label="Password"
+                type="password"
+                required
+                fullWidth
+                value={form.password}
+                onChange={updateField('password')}
+                autoComplete="current-password"
+              />
 
-        <button className="auth-submit" type="submit" disabled={submitting}>
-          {submitting ? 'Logging in…' : 'Log in'}
-        </button>
-      </form>
+              <Button type="submit" variant="contained" size="large" fullWidth disabled={submitting}>
+                {submitting ? 'Logging in…' : 'Log in'}
+              </Button>
+            </Stack>
+          </Box>
 
-      <p className="auth-switch">
-        Don't have an account? <Link to="/signup">Sign up</Link>
-      </p>
-    </div>
+          <Typography align="center" sx={{ mt: 3 }} color="text.secondary">
+            Don&rsquo;t have an account?{' '}
+            <Link component={RouterLink} to="/signup" fontWeight={600}>
+              Sign up
+            </Link>
+          </Typography>
+        </CardContent>
+      </Card>
+    </Box>
   )
 }

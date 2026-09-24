@@ -1,8 +1,16 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link as RouterLink } from 'react-router-dom'
+import Box from '@mui/material/Box'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Typography from '@mui/material/Typography'
+import TextField from '@mui/material/TextField'
+import Button from '@mui/material/Button'
+import Alert from '@mui/material/Alert'
+import Link from '@mui/material/Link'
+import Stack from '@mui/material/Stack'
 import { useAuth } from '../context/AuthContext'
 import { ApiError } from '../api/client'
-import './AuthForm.css'
 
 export function SignupPage() {
   const { signup } = useAuth()
@@ -37,57 +45,75 @@ export function SignupPage() {
   }
 
   return (
-    <div className="auth-page">
-      <h1>Create your account</h1>
-      <p className="auth-subtitle">Start getting activity ideas tailored to your kids.</p>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        px: 2,
+        py: { xs: 6, sm: 10 },
+      }}
+    >
+      <Card sx={{ width: '100%', maxWidth: 420 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Typography variant="h4" align="center" gutterBottom>
+            Create your account
+          </Typography>
+          <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 3 }}>
+            Start getting activity ideas tailored to your kids.
+          </Typography>
 
-      <form className="auth-form" onSubmit={handleSubmit}>
-        {error && <div className="auth-error">{error}</div>}
+          <Box component="form" onSubmit={handleSubmit}>
+            <Stack spacing={2}>
+              {error && <Alert severity="error">{error}</Alert>}
 
-        <div className="auth-field">
-          <label htmlFor="displayName">Your name</label>
-          <input
-            id="displayName"
-            type="text"
-            value={form.displayName}
-            onChange={updateField('displayName')}
-            autoComplete="name"
-          />
-        </div>
+              <TextField
+                id="displayName"
+                label="Your name"
+                type="text"
+                fullWidth
+                value={form.displayName}
+                onChange={updateField('displayName')}
+                autoComplete="name"
+              />
 
-        <div className="auth-field">
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={form.email}
-            onChange={updateField('email')}
-            autoComplete="email"
-          />
-        </div>
+              <TextField
+                id="email"
+                label="Email"
+                type="email"
+                required
+                fullWidth
+                value={form.email}
+                onChange={updateField('email')}
+                autoComplete="email"
+              />
 
-        <div className="auth-field">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            required
-            minLength={8}
-            value={form.password}
-            onChange={updateField('password')}
-            autoComplete="new-password"
-          />
-        </div>
+              <TextField
+                id="password"
+                label="Password"
+                type="password"
+                required
+                fullWidth
+                inputProps={{ minLength: 8 }}
+                value={form.password}
+                onChange={updateField('password')}
+                autoComplete="new-password"
+                helperText="At least 8 characters"
+              />
 
-        <button className="auth-submit" type="submit" disabled={submitting}>
-          {submitting ? 'Creating account…' : 'Sign up'}
-        </button>
-      </form>
+              <Button type="submit" variant="contained" size="large" fullWidth disabled={submitting}>
+                {submitting ? 'Creating account…' : 'Sign up'}
+              </Button>
+            </Stack>
+          </Box>
 
-      <p className="auth-switch">
-        Already have an account? <Link to="/login">Log in</Link>
-      </p>
-    </div>
+          <Typography align="center" sx={{ mt: 3 }} color="text.secondary">
+            Already have an account?{' '}
+            <Link component={RouterLink} to="/login" fontWeight={600}>
+              Log in
+            </Link>
+          </Typography>
+        </CardContent>
+      </Card>
+    </Box>
   )
 }

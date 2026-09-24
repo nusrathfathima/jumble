@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react'
+import Box from '@mui/material/Box'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Typography from '@mui/material/Typography'
+import FormGroup from '@mui/material/FormGroup'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Checkbox from '@mui/material/Checkbox'
+import Button from '@mui/material/Button'
+import Alert from '@mui/material/Alert'
+import CircularProgress from '@mui/material/CircularProgress'
+import Stack from '@mui/material/Stack'
 import { listMaterials } from '../api/materials'
 import { getInventory, updateInventory } from '../api/inventory'
 import { ApiError } from '../api/client'
-import './InventoryChecklist.css'
 
 const CATEGORY_LABELS = {
   KITCHEN: 'Kitchen',
@@ -62,10 +72,16 @@ export function InventoryChecklist() {
 
   if (loading) {
     return (
-      <div className="inventory-section">
-        <h2>What you have on hand</h2>
-        <p className="status">Loading…</p>
-      </div>
+      <Card>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            What you have on hand
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+            <CircularProgress size={28} />
+          </Box>
+        </CardContent>
+      </Card>
     )
   }
 
@@ -75,38 +91,61 @@ export function InventoryChecklist() {
   })).filter((group) => group.items.length > 0)
 
   return (
-    <div className="inventory-section">
-      <h2>What you have on hand</h2>
-      <p className="inventory-hint">
-        Suggestions will only include activities you can actually do with what's checked below.
-      </p>
+    <Card>
+      <CardContent sx={{ p: 3, textAlign: 'left' }}>
+        <Typography variant="h6" gutterBottom>
+          What you have on hand
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Suggestions will only include activities you can actually do with what&rsquo;s checked below.
+        </Typography>
 
-      {error && <div className="auth-error">{error}</div>}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
-      {byCategory.map(({ category, items }) => (
-        <div className="inventory-category" key={category}>
-          <h3>{CATEGORY_LABELS[category] || category}</h3>
-          <div className="inventory-grid">
-            {items.map((material) => (
-              <label className="inventory-item" key={material.id}>
-                <input
-                  type="checkbox"
-                  checked={checkedIds.has(material.id)}
-                  onChange={() => toggle(material.id)}
-                />
-                {material.displayName}
-              </label>
-            ))}
-          </div>
-        </div>
-      ))}
+        <Stack spacing={2.5}>
+          {byCategory.map(({ category, items }) => (
+            <Box key={category}>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ letterSpacing: '0.08em', fontWeight: 700 }}
+              >
+                {CATEGORY_LABELS[category] || category}
+              </Typography>
+              <FormGroup sx={{ display: 'grid', gridTemplateColumns: '1fr' }}>
+                {items.map((material) => (
+                  <FormControlLabel
+                    key={material.id}
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={checkedIds.has(material.id)}
+                        onChange={() => toggle(material.id)}
+                      />
+                    }
+                    label={material.displayName}
+                  />
+                ))}
+              </FormGroup>
+            </Box>
+          ))}
+        </Stack>
 
-      <div className="inventory-save-row">
-        <button className="auth-submit" type="button" onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving…' : 'Save inventory'}
-        </button>
-        {justSaved && <span className="inventory-saved-note">Saved.</span>}
-      </div>
-    </div>
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 3 }}>
+          <Button variant="contained" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Save inventory'}
+          </Button>
+          {justSaved && (
+            <Typography variant="body2" color="secondary.main" fontWeight={600}>
+              Saved.
+            </Typography>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   )
 }

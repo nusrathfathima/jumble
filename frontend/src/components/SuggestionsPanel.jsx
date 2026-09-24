@@ -1,16 +1,26 @@
 import { useState } from 'react'
+import Box from '@mui/material/Box'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Typography from '@mui/material/Typography'
+import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
+import Button from '@mui/material/Button'
+import Alert from '@mui/material/Alert'
+import Stack from '@mui/material/Stack'
+import Divider from '@mui/material/Divider'
+import Chip from '@mui/material/Chip'
 import { getSuggestions } from '../api/suggestions'
 import { recordCompletion } from '../api/completions'
 import { ApiError } from '../api/client'
-import './SuggestionsPanel.css'
 
 // Rating buttons shown on each suggestion card. The value sent to the
 // backend has to match the CHECK constraint on completion.rating exactly
 // (LOVED | OK | SKIPPED) — see CompletionController.RecordCompletionRequest.
 const RATINGS = [
-  { value: 'LOVED', label: 'Loved it' },
-  { value: 'OK', label: 'It was okay' },
-  { value: 'SKIPPED', label: 'Skipped' },
+  { value: 'LOVED', label: 'Loved it', color: 'primary' },
+  { value: 'OK', label: 'It was okay', color: 'secondary' },
+  { value: 'SKIPPED', label: 'Skipped', color: 'inherit' },
 ]
 
 export function SuggestionsPanel({ childList }) {
@@ -64,89 +74,128 @@ export function SuggestionsPanel({ childList }) {
   }
 
   return (
-    <div className="suggestions-section">
-      <h2>Get a suggestion</h2>
+    <Card
+      sx={{
+        borderTop: '4px solid',
+        borderTopColor: 'primary.main',
+      }}
+    >
+      <CardContent sx={{ p: { xs: 2.5, sm: 3.5 }, textAlign: 'left' }}>
+        <Typography variant="h5" gutterBottom>
+          Get a suggestion
+        </Typography>
 
-      <form onSubmit={handleSubmit}>
-        <div className="suggestions-form-row">
-          <div className="auth-field">
-            <label htmlFor="suggestChild">For</label>
-            <select id="suggestChild" value={childId} onChange={(e) => setChildId(e.target.value)}>
+        <Box component="form" onSubmit={handleSubmit}>
+        <Stack spacing={2}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              id="suggestChild"
+              label="For"
+              select
+              fullWidth
+              value={childId}
+              onChange={(e) => setChildId(e.target.value)}
+            >
               {childList.map((child) => (
-                <option key={child.id} value={child.id}>
+                <MenuItem key={child.id} value={child.id}>
                   {child.name}
-                </option>
+                </MenuItem>
               ))}
-            </select>
-          </div>
+            </TextField>
 
-          <div className="auth-field">
-            <label htmlFor="availableMinutes">Minutes available</label>
-            <input
+            <TextField
               id="availableMinutes"
+              label="Minutes available"
               type="number"
-              min="1"
+              fullWidth
+              inputProps={{ min: 1 }}
               value={availableMinutes}
               onChange={(e) => setAvailableMinutes(e.target.value)}
             />
-          </div>
-        </div>
+          </Stack>
 
-        <div className="suggestions-form-row suggestions-form-row-spaced">
-          <div className="auth-field">
-            <label htmlFor="maxMessLevel">Mess tolerance</label>
-            <select id="maxMessLevel" value={maxMessLevel} onChange={(e) => setMaxMessLevel(e.target.value)}>
-              <option value={1}>Low mess only</option>
-              <option value={2}>Some mess okay</option>
-              <option value={3}>Any mess level</option>
-            </select>
-          </div>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              id="maxMessLevel"
+              label="Mess tolerance"
+              select
+              fullWidth
+              value={maxMessLevel}
+              onChange={(e) => setMaxMessLevel(e.target.value)}
+            >
+              <MenuItem value={1}>Low mess only</MenuItem>
+              <MenuItem value={2}>Some mess okay</MenuItem>
+              <MenuItem value={3}>Any mess level</MenuItem>
+            </TextField>
 
-          <div className="auth-field">
-            <label htmlFor="locationType">Where</label>
-            <select id="locationType" value={locationType} onChange={(e) => setLocationType(e.target.value)}>
-              <option value="EITHER">No preference</option>
-              <option value="INDOOR">Indoor</option>
-              <option value="OUTDOOR">Outdoor</option>
-            </select>
-          </div>
-        </div>
+            <TextField
+              id="locationType"
+              label="Where"
+              select
+              fullWidth
+              value={locationType}
+              onChange={(e) => setLocationType(e.target.value)}
+            >
+              <MenuItem value="EITHER">No preference</MenuItem>
+              <MenuItem value="INDOOR">Indoor</MenuItem>
+              <MenuItem value="OUTDOOR">Outdoor</MenuItem>
+            </TextField>
+          </Stack>
 
-        <button className="auth-submit suggestions-submit" type="submit" disabled={loading}>
-          {loading ? 'Finding ideas…' : 'Get a suggestion'}
-        </button>
-      </form>
+          <Button type="submit" variant="contained" size="large" disabled={loading}>
+            {loading ? 'Finding ideas…' : 'Get a suggestion'}
+          </Button>
+        </Stack>
+      </Box>
 
-      {error && <div className="auth-error suggestions-error">{error}</div>}
+      {error && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {error}
+        </Alert>
+      )}
 
       {suggestions && suggestions.suggestions.length === 0 && (
-        <div className="suggestions-empty-block">
-          <p className="suggestions-empty">
+        <Box sx={{ mt: 2 }}>
+          <Typography color="text.secondary">
             Nothing matched those constraints exactly. Try more time, a higher mess tolerance, or a different
             location.
-          </p>
+          </Typography>
 
           {suggestions.nearMisses.length > 0 && (
-            <div className="near-misses">
-              <p className="near-misses-heading">You&rsquo;re close on a few — just missing some materials:</p>
-              <ul className="near-misses-list">
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                You&rsquo;re close on a few — just missing some materials:
+              </Typography>
+              <Stack spacing={1.5}>
                 {suggestions.nearMisses.map((nm) => (
-                  <li className="near-miss-card" key={nm.activityId}>
-                    <div className="near-miss-title">{nm.title}</div>
-                    <div className="near-miss-duration">{nm.durationMinutes} minutes</div>
-                    <div className="near-miss-missing">
+                  <Box
+                    key={nm.activityId}
+                    sx={{
+                      border: '1px dashed',
+                      borderColor: 'divider',
+                      borderRadius: 3,
+                      p: 1.5,
+                    }}
+                  >
+                    <Typography variant="subtitle2" fontWeight={700}>
+                      {nm.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {nm.durationMinutes} minutes
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 0.5 }}>
                       Missing: {nm.missingMaterials.join(', ')}
-                    </div>
-                  </li>
+                    </Typography>
+                  </Box>
                 ))}
-              </ul>
-            </div>
+              </Stack>
+            </Box>
           )}
-        </div>
+        </Box>
       )}
 
       {suggestions && suggestions.suggestions.length > 0 && (
-        <ul className="suggestions-list">
+        <Stack spacing={2} sx={{ mt: 2 }}>
           {suggestions.suggestions.map((s) => {
             const status = feedbackStatus[s.activityId]
             const isDone = status === 'done'
@@ -154,39 +203,63 @@ export function SuggestionsPanel({ childList }) {
             const errorMessage = status && status !== 'submitting' && status !== 'done' ? status : null
 
             return (
-              <li className="suggestion-card" key={s.activityId}>
-                <div className="suggestion-title">{s.title}</div>
-                <div className="suggestion-duration">{s.durationMinutes} minutes</div>
-                <div className="suggestion-explanation">{s.explanation}</div>
+              <Box
+                key={s.activityId}
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 3,
+                  p: 2,
+                }}
+              >
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    {s.title}
+                  </Typography>
+                  <Chip size="small" label={`${s.durationMinutes} min`} variant="outlined" />
+                </Stack>
+                <Typography variant="body2" color="text.secondary">
+                  {s.explanation}
+                </Typography>
+
+                <Divider sx={{ my: 1.5 }} />
 
                 {isDone ? (
-                  <p className="feedback-done">
+                  <Typography variant="body2" color="secondary.main">
                     Thanks — that&rsquo;s saved, and it&rsquo;ll shape what gets suggested next time.
-                  </p>
+                  </Typography>
                 ) : (
-                  <div className="feedback-row">
-                    <span className="feedback-label">Did you try this?</span>
-                    <div className="feedback-buttons">
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                      Did you try this?
+                    </Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                       {RATINGS.map((r) => (
-                        <button
+                        <Button
                           key={r.value}
-                          type="button"
-                          className="feedback-button"
+                          size="small"
+                          variant="outlined"
+                          color={r.color}
                           disabled={isSubmitting}
                           onClick={() => handleFeedback(s.activityId, r.value)}
                         >
                           {r.label}
-                        </button>
+                        </Button>
                       ))}
-                    </div>
-                    {errorMessage && <div className="auth-error suggestions-error">{errorMessage}</div>}
-                  </div>
+                    </Stack>
+                    {errorMessage && (
+                      <Alert severity="error" sx={{ mt: 1 }}>
+                        {errorMessage}
+                      </Alert>
+                    )}
+                  </Box>
                 )}
-              </li>
+              </Box>
             )
           })}
-        </ul>
+        </Stack>
       )}
-    </div>
+      </CardContent>
+    </Card>
   )
 }

@@ -1,7 +1,15 @@
 import { useState } from 'react'
+import Box from '@mui/material/Box'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
+import Button from '@mui/material/Button'
+import Alert from '@mui/material/Alert'
+import Chip from '@mui/material/Chip'
 import { createChild } from '../api/children'
 import { ApiError } from '../api/client'
-import './Children.css'
+import { colorForTag } from '../theme'
 
 const currentYear = new Date().getFullYear()
 // A reasonable birth-year range for the app's target ages (2-12 per the
@@ -50,73 +58,87 @@ export function AddChildForm({ tags, onChildAdded }) {
   }
 
   return (
-    <form className="add-child-form" onSubmit={handleSubmit}>
-      <h2>Add a child</h2>
+    <Box
+      component="form"
+      onSubmit={handleSubmit}
+      sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: 2.5, textAlign: 'left' }}
+    >
+      <Typography variant="h6" gutterBottom>
+        Add a child
+      </Typography>
 
-      {error && <div className="auth-error">{error}</div>}
+      <Stack spacing={2}>
+        {error && <Alert severity="error">{error}</Alert>}
 
-      <div className="auth-field">
-        <label htmlFor="childName">Name</label>
-        <input
+        <TextField
           id="childName"
-          type="text"
+          label="Name"
           required
+          fullWidth
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-      </div>
 
-      <div className="add-child-row">
-        <div className="auth-field">
-          <label htmlFor="birthMonth">Birth month</label>
-          <select
+        <Stack direction="row" spacing={2}>
+          <TextField
             id="birthMonth"
+            label="Birth month"
+            select
+            fullWidth
             value={birthMonth}
             onChange={(e) => setBirthMonth(e.target.value)}
           >
             {months.map((label, i) => (
-              <option key={label} value={i + 1}>
+              <MenuItem key={label} value={i + 1}>
                 {label}
-              </option>
+              </MenuItem>
             ))}
-          </select>
-        </div>
+          </TextField>
 
-        <div className="auth-field">
-          <label htmlFor="birthYear">Birth year</label>
-          <select
+          <TextField
             id="birthYear"
+            label="Birth year"
+            select
+            fullWidth
             value={birthYear}
             onChange={(e) => setBirthYear(e.target.value)}
           >
             {birthYears.map((year) => (
-              <option key={year} value={year}>
+              <MenuItem key={year} value={year}>
                 {year}
-              </option>
+              </MenuItem>
             ))}
-          </select>
-        </div>
-      </div>
+          </TextField>
+        </Stack>
 
-      <div className="auth-field">
-        <label>Interests (optional — helps tailor early suggestions)</label>
-        <div className="tag-checkboxes">
-          {tags.map((tag) => (
-            <label className="tag-checkbox" key={tag.slug}>
-              <input
-                type="checkbox"
-                checked={selectedTags.includes(tag.slug)}
-                onChange={() => toggleTag(tag.slug)}
-              />
-              {tag.displayName}
-            </label>
-          ))}
-        </div>
-      </div>
+        <Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Interests (optional — helps tailor early suggestions)
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {tags.map((tag) => {
+              const tagColor = colorForTag(tag.slug)
+              const selected = selectedTags.includes(tag.slug)
+              return (
+                <Chip
+                  key={tag.slug}
+                  label={tag.displayName}
+                  clickable
+                  onClick={() => toggleTag(tag.slug)}
+                  variant={selected ? 'filled' : 'outlined'}
+                  sx={selected
+                    ? { bgcolor: tagColor, color: '#FFFFFF', fontWeight: 600, borderColor: tagColor }
+                    : { borderColor: tagColor, color: tagColor, fontWeight: 600 }}
+                />
+              )
+            })}
+          </Box>
+        </Box>
 
-      <button className="auth-submit" type="submit" disabled={submitting}>
-        {submitting ? 'Adding…' : 'Add child'}
-      </button>
-    </form>
+        <Button type="submit" variant="contained" disabled={submitting}>
+          {submitting ? 'Adding…' : 'Add child'}
+        </Button>
+      </Stack>
+    </Box>
   )
 }
