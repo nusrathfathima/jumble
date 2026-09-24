@@ -189,6 +189,39 @@ A few things worth deliberately testing:
 
 In the browser, each suggestion card now has three feedback buttons ("Loved it" / "It was okay" / "Skipped") underneath it. Clicking one saves the completion and swaps the buttons for a short confirmation message.
 
+## Trying out stats
+
+History (`GET /api/children/{id}/completions`, above) is the log. Stats is the summary on top of it — the numbers a "your child's activity" screen would actually show, computed fresh from that same log every time rather than stored anywhere separately.
+
+```
+curl http://localhost:8080/api/children/1/stats -H "Authorization: Bearer <TOKEN>"
+```
+
+Response shape:
+
+```json
+{
+  "totalCompletions": 14,
+  "completionsThisMonth": 5,
+  "lovedCount": 9,
+  "okCount": 4,
+  "skippedCount": 1,
+  "favoriteTag": { "slug": "art", "displayName": "Art", "completionCount": 6 }
+}
+```
+
+- `totalCompletions` — every completion ever recorded for this child, any rating.
+- `completionsThisMonth` — completions since the 1st of the current calendar month (not a rolling 30 days), so it resets on a date a parent can predict.
+- `lovedCount` / `okCount` / `skippedCount` — a breakdown of `totalCompletions` by rating; the three should always add up to `totalCompletions`.
+- `favoriteTag` — whichever tag shows up most often across this child's completed activities (an activity tagged both Art and Quiet counts once toward each). `null` if the child has no completions yet, or if every completed activity happens to carry no tags at all.
+
+A few things worth deliberately testing:
+
+- **A child with no history yet:** all five counts should come back `0` and `favoriteTag` should be `null` — not a 500, not a fabricated favorite.
+- **The counts track the feedback loop:** mark a couple more completions with different ratings (see "Trying out the feedback loop" above), then call `/stats` again — `totalCompletions` and the matching rating count should both go up by exactly one each time.
+- **Favorite tag changes with real usage:** complete several activities that share a tag (say, three Art activities) for a child who previously favored a different tag — `favoriteTag` should flip to Art once it has the highest count.
+- **Ownership:** requesting `/api/children/{id}/stats` for a child that belongs to a different parent's account should come back `404`, the same as every other child-scoped endpoint.
+
 ## What's here so far
 
 - `JumbleBackendApplication.java` — the entry point.
@@ -213,10 +246,11 @@ In the browser, each suggestion card now has three feedback buttons ("Loved it" 
 - `model/` — now also `Activity`, `ActivityTag`, `ActivityMaterial`, `ActivityStep`, matching the new `activity`, `activity_tag`, `activity_material`, and `activity_step` tables.
 - `repository/` — `ActivityRepository` (includes both the native ranking query behind `suggestions` and the native near-miss query behind `nearMisses`), `ActivityTagRepository`, `ActivityMaterialRepository`, `ActivityStepRepository`, and `ChildTagWeightRepository` gained a lookup used to build the suggestion explanations.
 - `controller/CompletionController.java` — `GET/POST /api/children/{id}/completions`, the feedback loop: recording a rated completion saves the history row (which the suggestions query's repeat suppression reads) and nudges that activity's tags' weights up or down for that child in the same transaction (schema doc section 5).
-- `model/Completion.java` and `repository/CompletionRepository.java` — the `completion` table's entity, plus the native weight-adjustment `UPDATE` from schema doc section 5, ported the same way the suggestions and near-miss queries were: as a native query, because it's a plain, well-understood `UPDATE ... WHERE tag_id IN (subquery)`, not something JPQL or Criteria API would express any more clearly.
+- `model/Completion.java` and `repository/CompletionRepository.java` — the `completion` table's entity, plus the native weight-adjustment `UPDATE` from schema doc section 5, ported the same way the suggestions and near-miss queries were: as a native query, because it's a plain, well-understood `UPDATE ... WHERE tag_id IN (subquery)`, not something JPQL or Criteria API would express any more clearly. `CompletionRepository` now also has the four count lookups and the native `findTopTag` query that `StatsController` runs.
+- `controller/StatsController.java` — `GET /api/children/{id}/stats`, the aggregate view on top of the completion log: total completions, this-calendar-month count, a loved/ok/skipped breakdown, and the child's favorite tag by completion count.
 
 `TestDataController.java` has been deleted — it was scaffolding for proving Parent/Child persistence worked, and the real endpoints above have replaced it.
 
 **A note on `Short` vs `Integer`:** `Tag.id`, `Material.id`, and the small numeric fields on `Activity`/`ActivityStep` (`minAgeYears`, `maxAgeYears`, `durationMinutes`, `messLevel`, `stepNumber`) are all `Short` in Java, not `Integer`, because their database columns are `SMALLINT`. Hibernate's schema validation checks the exact column type, and this mismatch caused a real startup failure earlier in this project — worth remembering if a future entity maps to a `SMALLINT` column (anything with `GENERATED ALWAYS AS IDENTITY` on a `SMALLINT` in the schema doc, which is the small lookup tables and small numeric fields, as opposed to `BIGINT` ones like `parent`, `child`, and `activity` ids, which correctly use `Long`).
 
-Next up: history/stats screens (a simple "what has this child done" view built on `GET /api/children/{id}/completions`, which already exists), and eventually weather-aware filtering.
+Next up: weather-aware filtering (skip outdoor suggestions on rainy days, based on the parent's location).
