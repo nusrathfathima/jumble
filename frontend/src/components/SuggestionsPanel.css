@@ -70,3 +70,50 @@
   color: var(--text);
   font-size: 0.9rem;
 }
+
+.suggestions-empty-block {
+  margin-top: 1rem;
+}
+
+.near-misses {
+  margin-top: 1rem;
+}
+
+.near-misses-heading {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0 0 0.6rem;
+}
+
+.near-misses-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.near-miss-card {
+  border: 1px dashed var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.near-miss-card .near-miss-title {
+  font-weight: 600;
+  color: var(--text-h);
+  font-size: 0.9rem;
+}
+
+.near-miss-card .near-miss-duration {
+  font-size: 0.8rem;
+  color: var(--text);
+  margin: 0.1rem 0 0.35rem;
+}
+
+.near-miss-card .near-miss-missing {
+  font-size: 0.85rem;
+  color: var(--text);
+}

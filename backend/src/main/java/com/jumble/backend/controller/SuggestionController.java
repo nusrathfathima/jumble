@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,20 @@ public class SuggestionController {
 
     public record SuggestionView(
             Long activityId, String title, short durationMinutes, double score, String explanation) {
+    }
+
+    /**
+     * "Show what's missing" — populated only when suggestions comes back
+     * empty. Each entry is an activity that would otherwise have
+     * qualified (right age, fits the time/mess/location given) except
+     * for one or more required materials not currently in the household
+     * inventory, closest matches (fewest missing items) first.
+     */
+    public record NearMissView(
+            Long activityId, String title, short durationMinutes, List<String> missingMaterials) {
+    }
+
+    public record SuggestionsResponse(List<SuggestionView> suggestions, List<NearMissView> nearMisses) {
     }
 
     public record ErrorResponse(String message) {
@@ -100,7 +115,22 @@ public class SuggestionController {
                         buildExplanation(row, weightsByTagId, availableMinutes, maxMessLevel)))
                 .toList();
 
-        return ResponseEntity.ok(views);
+        // Only spend the extra query when there's actually nothing to
+        // show — this is purely an empty-state helper, not something
+        // that runs on every successful search.
+        List<NearMissView> nearMisses = views.isEmpty()
+                ? activityRepository
+                        .findNearMisses(childId, availableMinutes, maxMessLevel, locationType, repeatWindowDays)
+                        .stream()
+                        .map(row -> new NearMissView(
+                                row.getId(),
+                                row.getTitle(),
+                                row.getDurationMinutes(),
+                                Arrays.asList(row.getMissingMaterials().split(", "))))
+                        .toList()
+                : List.of();
+
+        return ResponseEntity.ok(new SuggestionsResponse(views, nearMisses));
     }
 
     /**

@@ -19,12 +19,12 @@ export function SuggestionsPanel({ childList }) {
     setSuggestions(null)
 
     try {
-      const results = await getSuggestions(childId, {
+      const result = await getSuggestions(childId, {
         availableMinutes: Number(availableMinutes),
         maxMessLevel: Number(maxMessLevel),
         locationType,
       })
-      setSuggestions(results)
+      setSuggestions(result)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not get suggestions right now.')
     } finally {
@@ -92,16 +92,35 @@ export function SuggestionsPanel({ childList }) {
 
       {error && <div className="auth-error suggestions-error">{error}</div>}
 
-      {suggestions && suggestions.length === 0 && (
-        <p className="suggestions-empty">
-          Nothing matched those constraints. Try more time, a higher mess tolerance, or checking more items in
-          your inventory above.
-        </p>
+      {suggestions && suggestions.suggestions.length === 0 && (
+        <div className="suggestions-empty-block">
+          <p className="suggestions-empty">
+            Nothing matched those constraints exactly. Try more time, a higher mess tolerance, or a different
+            location.
+          </p>
+
+          {suggestions.nearMisses.length > 0 && (
+            <div className="near-misses">
+              <p className="near-misses-heading">You&rsquo;re close on a few — just missing some materials:</p>
+              <ul className="near-misses-list">
+                {suggestions.nearMisses.map((nm) => (
+                  <li className="near-miss-card" key={nm.activityId}>
+                    <div className="near-miss-title">{nm.title}</div>
+                    <div className="near-miss-duration">{nm.durationMinutes} minutes</div>
+                    <div className="near-miss-missing">
+                      Missing: {nm.missingMaterials.join(', ')}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       )}
 
-      {suggestions && suggestions.length > 0 && (
+      {suggestions && suggestions.suggestions.length > 0 && (
         <ul className="suggestions-list">
-          {suggestions.map((s) => (
+          {suggestions.suggestions.map((s) => (
             <li className="suggestion-card" key={s.activityId}>
               <div className="suggestion-title">{s.title}</div>
               <div className="suggestion-duration">{s.durationMinutes} minutes</div>

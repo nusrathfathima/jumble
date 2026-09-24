@@ -101,4 +101,85 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
             @Param("maxMessLevel") int maxMessLevel,
             @Param("locationType") String locationType,
             @Param("repeatWindowDays") int repeatWindowDays);
+
+    /**
+     * "Show what's missing" — for when findSuggestions comes back empty.
+     * Same age/duration/mess/location/repeat filters as findSuggestions,
+     * but instead of excluding an activity for missing a required
+     * material, this deliberately keeps it and reports exactly which
+     * material(s) are missing, so the empty-state screen can say
+     * something actionable ("you're missing 2 things for X") instead of
+     * just "nothing matched, try loosening filters."
+     *
+     * missingMaterials comes back as one comma-separated string rather
+     * than a Postgres array: mapping a native-query TEXT/VARCHAR column
+     * to a Java String is the same well-trodden path every other
+     * projection here already uses, whereas mapping a Postgres array
+     * type needs extra Hibernate type configuration this project doesn't
+     * have set up — not worth the risk for a details field. The
+     * controller splits the string back into a list before it reaches
+     * the frontend.
+     */
+    interface NearMissProjection {
+        Long getId();
+        String getTitle();
+        Short getDurationMinutes();
+        String getMissingMaterials();
+        Long getMissingCount();
+    }
+
+    @Query(value = """
+            WITH ctx AS (
+                SELECT c.id        AS child_id,
+                       c.parent_id AS parent_id,
+                       EXTRACT(YEAR FROM age(current_date, c.birth_date))::int AS age_years
+                FROM child c
+                WHERE c.id = :childId
+            ),
+            candidate AS (
+                SELECT a.id, a.title, a.duration_minutes
+                FROM activity a
+                CROSS JOIN ctx
+                WHERE a.is_active
+                  AND ctx.age_years BETWEEN a.min_age_years AND a.max_age_years
+                  AND a.duration_minutes <= :availableMinutes
+                  AND a.mess_level       <= :maxMessLevel
+                  AND (:locationType = 'EITHER'
+                       OR a.location_type = 'EITHER'
+                       OR a.location_type = :locationType)
+                  AND NOT EXISTS (
+                        SELECT 1 FROM completion cp
+                        WHERE cp.child_id = ctx.child_id
+                          AND cp.activity_id = a.id
+                          AND cp.completed_at > now() - make_interval(days => :repeatWindowDays)
+                  )
+            ),
+            missing AS (
+                SELECT c.id AS activity_id, c.title, c.duration_minutes, m.display_name AS missing_material
+                FROM candidate c
+                CROSS JOIN ctx
+                JOIN activity_material am ON am.activity_id = c.id AND NOT am.is_optional
+                JOIN material m ON m.id = am.material_id
+                WHERE NOT EXISTS (
+                        SELECT 1 FROM parent_inventory pi
+                        WHERE pi.parent_id   = ctx.parent_id
+                          AND pi.material_id = am.material_id
+                )
+            )
+            SELECT activity_id AS id,
+                   title AS title,
+                   duration_minutes AS durationMinutes,
+                   string_agg(missing_material, ', ' ORDER BY missing_material) AS missingMaterials,
+                   COUNT(*) AS missingCount
+            FROM missing
+            GROUP BY activity_id, title, duration_minutes
+            ORDER BY missingCount ASC, title ASC
+            LIMIT 5
+            """, nativeQuery = true)
+    List<NearMissProjection> findNearMisses(
+            @Param("childId") Long childId,
+            @Param("availableMinutes") int availableMinutes,
+            @Param("maxMessLevel") int maxMessLevel,
+            @Param("locationType") String locationType,
+            @Param("repeatWindowDays") int repeatWindowDays);
 }

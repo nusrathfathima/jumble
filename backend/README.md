@@ -128,7 +128,7 @@ This is the big one — the actual "get a suggestion" feature the whole project 
 curl http://localhost:8080/api/activities -H "Authorization: Bearer <TOKEN>"
 ```
 
-Lists all 12 seeded activities. Grab one's `id` and look at its full detail, including steps:
+Lists all 27 seeded activities (12 from the original library, 10 more to widen age/mess/location coverage, and 5 more that need zero materials at all — see `V5__seed_more_activities.sql` and `V6__seed_zero_material_activities.sql`). Grab one's `id` and look at its full detail, including steps:
 
 ```
 curl http://localhost:8080/api/activities/1 -H "Authorization: Bearer <TOKEN>"
@@ -140,12 +140,26 @@ Now the real test — get suggestions for a child. You need a child's `id` (from
 curl "http://localhost:8080/api/children/1/suggestions?availableMinutes=45&maxMessLevel=3&locationType=EITHER" -H "Authorization: Bearer <TOKEN>"
 ```
 
-You should get back up to 5 activities, ranked, each with a `score` and a plain-language `explanation`. A few things worth deliberately testing to see the filtering actually work, not just trust that it does:
+**The response shape changed from earlier in this milestone.** It used to be a bare array of suggestions; now it's an object with two lists:
 
-- **Age filtering:** create a child with a birth year that makes them, say, 1 year old, and confirm the results are empty or very different from a 7-year-old's — every activity in the seed data requires at least age 3.
-- **Time filtering:** set `availableMinutes=10` — everything in the library takes at least 20 minutes, so you should get an empty list back (`[]`), not an error.
-- **Mess filtering:** set `maxMessLevel=1` — only the lowest-mess activities (fort building, scavenger hunt, binoculars, shadow puppets) should come back.
-- **Material filtering:** with your inventory empty (`PUT /api/inventory` with `{"materialIds":[]}`), request suggestions — you should get very few or none back, since almost every activity needs at least one non-optional material. Then check a handful of materials (flour, salt, cooking_oil, paper, crayons, sidewalk_chalk are good ones to try) and request again — more activities should now qualify.
+```json
+{
+  "suggestions": [
+    { "activityId": 3, "title": "...", "durationMinutes": 30, "score": 2.0, "explanation": "..." }
+  ],
+  "nearMisses": []
+}
+```
+
+`suggestions` is the same ranked list as before (up to 5, each with a `score` and a plain-language `explanation`). `nearMisses` is new: it's only populated when `suggestions` comes back empty, and lists activities that would have qualified on age/time/mess/location but are missing one or more required materials — each entry names exactly which materials are missing, so a dead end becomes an actionable "go grab X and Y" instead of a shrug.
+
+A few things worth deliberately testing to see the filtering actually work, not just trust that it does:
+
+- **Age filtering:** create a child with a birth year that makes them, say, 1 year old, and confirm the results differ from a 7-year-old's — the youngest-friendly activities (shape sorting box) start at age 1, but most still need at least age 3.
+- **Time filtering:** set `availableMinutes=10` — everything in the library takes at least 15 minutes, so `suggestions` should come back empty.
+- **Mess filtering:** set `maxMessLevel=1` — only the lowest-mess activities should come back; there are now many more of these (paper airplanes, sock puppets, mini books, reading nook fort, cardboard tube tower, and more) than in the original 12.
+- **Material filtering, and the near-miss feature:** with your inventory empty (`PUT /api/inventory` with `{"materialIds":[]}`), request suggestions with a fairly generous time limit (30+ minutes) — you'll likely still get real `suggestions` back, from the five zero-material activities (I Spy, Animal Charades, Story Chain, Living Room Animal Yoga, Cloud Watching, Reading Nook Blanket Fort, Nature Scavenger Hunt) that never need anything checked in inventory. To actually see `nearMisses` populate, tighten `availableMinutes` below what those zero-material activities need (try `availableMinutes=20&maxMessLevel=1&locationType=INDOOR`) — `suggestions` should come back empty, and `nearMisses` should list activities like Paper Airplane Contest or Flashlight Shadow Puppets with their missing materials named. Check just the one or two materials a near-miss activity needs and request again — it should move from `nearMisses` into `suggestions`.
+- **Zero-material variety:** with inventory empty, run the suggestions call a few times with slightly different `availableMinutes`/`maxMessLevel`/`locationType` combinations for the same child — you should see a genuine mix of the zero-material activities rather than always the same single one.
 - **The explanation text:** if the child has declared interests (from `interestTagSlugs` at creation) or has otherwise-elevated tag weights, an activity matching those tags should say so in its `explanation` field, e.g. "Matches an interest in Science."
 
 ## What's here so far
@@ -164,11 +178,13 @@ You should get back up to 5 activities, ranked, each with a `score` and a plain-
 - `application.properties` — server configuration. Database credentials and the JWT secret are deliberately *not* here — see above.
 - `db/migration/V2__seed_tags.sql` — the 7 MVP interest tags (art, science, outdoor, building, pretend play, cooking, quiet/reading). Adding more later is just a `V3__...` migration.
 - `db/migration/V3__seed_materials.sql` — a starter material catalog (~32 items). Same additive pattern as the tags.
-- `db/migration/V4__seed_activities.sql` — 12 fully written activities (with age range, duration, mess level, location, tags, materials, and step-by-step instructions each), the actual content the recommendation engine draws from.
+- `db/migration/V4__seed_activities.sql` — the original 12 fully written activities (age range, duration, mess level, location, tags, materials, and step-by-step instructions each), the actual content the recommendation engine draws from.
+- `db/migration/V5__seed_more_activities.sql` — 10 more activities, deliberately weighted toward INDOOR + low-mess and a wider age spread (as young as 1), since that combination was the gap that made a real search come back empty during testing. Also adds two new household materials (`socks`, `blanket`) the same additive way `V3` added the rest.
+- `db/migration/V6__seed_zero_material_activities.sql` — 5 more activities that need no materials at all (I Spy, Animal Charades, Story Chain, Living Room Animal Yoga, Cloud Watching). Added after testing showed that with an empty inventory, every child got shown the exact same single suggestion (Reading Nook Blanket Fort was the only zero-material option) — this spreads that "always have something to offer" baseline across six-plus real choices instead of one repeated one.
 - `controller/ActivityController.java` — `GET /api/activities` (browse the whole library) and `GET /api/activities/{id}` (full detail: tags, materials, steps).
-- `controller/SuggestionController.java` — `GET /api/children/{id}/suggestions`, the centerpiece "get a suggestion" endpoint: filters the library by the child's age, the time/mess/location you specify, and what materials you actually have, then ranks by the child's interest weights and returns a plain-English explanation with each result.
+- `controller/SuggestionController.java` — `GET /api/children/{id}/suggestions`, the centerpiece "get a suggestion" endpoint: filters the library by the child's age, the time/mess/location you specify, and what materials you actually have, then ranks by the child's interest weights and returns a plain-English explanation with each result. Now also returns a `nearMisses` list — activities that almost qualified, missing only specific materials — whenever the main `suggestions` list comes back empty.
 - `model/` — now also `Activity`, `ActivityTag`, `ActivityMaterial`, `ActivityStep`, matching the new `activity`, `activity_tag`, `activity_material`, and `activity_step` tables.
-- `repository/` — `ActivityRepository` (includes the native ranking/filtering query behind suggestions), `ActivityTagRepository`, `ActivityMaterialRepository`, `ActivityStepRepository`, and `ChildTagWeightRepository` gained a lookup used to build the suggestion explanations.
+- `repository/` — `ActivityRepository` (includes both the native ranking query behind `suggestions` and the native near-miss query behind `nearMisses`), `ActivityTagRepository`, `ActivityMaterialRepository`, `ActivityStepRepository`, and `ChildTagWeightRepository` gained a lookup used to build the suggestion explanations.
 
 `TestDataController.java` has been deleted — it was scaffolding for proving Parent/Child persistence worked, and the real endpoints above have replaced it.
 
