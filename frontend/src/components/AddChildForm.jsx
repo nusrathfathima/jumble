@@ -71,7 +71,7 @@ export function AddChildForm({ tags, onChildAdded }) {
           onChange={(e) => setName(e.target.value)}
         />
 
-        <Stack direction="row" spacing={2}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField
             id="birthMonth"
             label="Birth month"

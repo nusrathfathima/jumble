@@ -1,107 +1,127 @@
+import { useState } from 'react'
 import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import Box from '@mui/material/Box'
-import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
-import Accordion from '@mui/material/Accordion'
-import AccordionSummary from '@mui/material/AccordionSummary'
-import AccordionDetails from '@mui/material/AccordionDetails'
+import Tabs from '@mui/material/Tabs'
+import Tab from '@mui/material/Tab'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
 import { ChildList } from './ChildList'
 import { InventoryChecklist } from './InventoryChecklist'
 import { useAuth } from '../context/AuthContext'
 
-// A simple chevron built from a Typography glyph rather than
-// @mui/icons-material, which isn't installed — MUI's AccordionSummary
-// rotates whatever's passed as expandIcon on its own, so this still
-// flips correctly on expand/collapse without adding a dependency.
-function Chevron() {
-  return (
-    <Typography component="span" sx={{ fontSize: 20, fontWeight: 700, color: 'text.secondary', lineHeight: 1 }}>
-      ⌄
-    </Typography>
-  )
-}
-
-function accordionSx(accent) {
-  return {
-    border: '1px solid',
-    borderColor: 'divider',
-    borderLeft: '5px solid',
-    borderLeftColor: accent,
-    borderRadius: 3,
-    bgcolor: `${accent}0D`,
-    '&:before': { display: 'none' },
-    '&.Mui-expanded': { margin: 0 },
-  }
-}
+const PANELS = [
+  { key: 'children', label: 'Children', accent: '#2FA8E0' },
+  { key: 'inventory', label: 'What you have on hand', accent: '#FF6FA5' },
+]
 
 /**
- * Reached from the ⚙ Settings button in the header. A popup (matching the
- * "Add a child" dialog) rather than a slide-out panel, so it behaves the
- * same way every other quick action in the app does. Both accordions
- * start closed every time it opens — nothing to collapse manually, no
- * clutter on open — and each has its own color, matching the playful
- * treatment the child cards and suggestion cards already use. Log out
- * lives here too, since it's an occasional account action rather than
- * something that needs to sit in the header on every screen.
+ * Reached from the ⚙ Settings button. A popup, matching the "Add a
+ * child" dialog, rather than a slide-out panel. Children and inventory
+ * used to be two accordions, but opening "What you have on hand" pushed
+ * the children list around and made both feel cluttered at once — tabs
+ * fix that by only ever showing one panel at a time.
+ *
+ * Both panels stay mounted the whole time the dialog is open — only
+ * hidden with CSS, not unmounted — so InventoryChecklist's own data
+ * fetch runs once per time you open Settings, not once per tab click.
+ * Switching tabs used to remount it from scratch (a fresh spinner and a
+ * fresh network round trip every time), which is what made "What you
+ * have on hand" feel slow to open on the second and third visits.
+ *
+ * Full-screen on phones so the tab bar, chips, and slider all get real
+ * room instead of being squeezed into a small centered box.
  */
 export function SettingsDialog({ open, onClose, childList, tags }) {
   const { parent, logout } = useAuth()
+  const theme = useTheme()
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
+  const [tab, setTab] = useState(0)
 
   function handleLogout() {
     onClose()
     logout()
   }
 
+  function handleClose() {
+    setTab(0)
+    onClose()
+  }
+
+  const activeAccent = PANELS[tab].accent
+
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm" fullScreen={fullScreen}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         Settings
-        <IconButton size="small" onClick={onClose} aria-label="Close">
+        <IconButton size="small" onClick={handleClose} aria-label="Close">
           <Typography component="span" sx={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>
             ✕
           </Typography>
         </IconButton>
       </DialogTitle>
-      <DialogContent>
-        <Stack spacing={2}>
-          <Accordion disableGutters sx={accordionSx('#2FA8E0')}>
-            <AccordionSummary expandIcon={<Chevron />}>
-              <Typography variant="subtitle1" fontWeight={700}>
-                Children
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <ChildList childList={childList} tags={tags} />
-            </AccordionDetails>
-          </Accordion>
+      <DialogContent sx={{ display: 'flex', flexDirection: 'column' }}>
+        <Tabs
+          value={tab}
+          onChange={(e, value) => setTab(value)}
+          variant="fullWidth"
+          TabIndicatorProps={{ sx: { bgcolor: activeAccent, height: 3 } }}
+          sx={{ mb: 2, borderBottom: '1px solid', borderColor: 'divider' }}
+        >
+          {PANELS.map((panel, i) => (
+            <Tab
+              key={panel.key}
+              label={panel.label}
+              sx={{ fontWeight: 700, color: tab === i ? panel.accent : 'text.secondary', '&.Mui-selected': { color: panel.accent } }}
+            />
+          ))}
+        </Tabs>
 
-          <Accordion disableGutters sx={accordionSx('#FF6FA5')}>
-            <AccordionSummary expandIcon={<Chevron />}>
-              <Typography variant="subtitle1" fontWeight={700}>
-                What you have on hand
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <InventoryChecklist />
-            </AccordionDetails>
-          </Accordion>
+        <Box
+          sx={{
+            display: tab === 0 ? 'block' : 'none',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderLeft: '5px solid',
+            borderLeftColor: PANELS[0].accent,
+            borderRadius: 3,
+            bgcolor: `${PANELS[0].accent}0D`,
+            p: 2,
+          }}
+        >
+          <ChildList childList={childList} tags={tags} />
+        </Box>
 
-          <Divider />
+        <Box
+          sx={{
+            display: tab === 1 ? 'block' : 'none',
+            // The inventory tab already gets its color from each
+            // checkbox, so it keeps a plain neutral container instead of
+            // also washing the whole panel in pink.
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 3,
+            p: 2,
+          }}
+        >
+          <InventoryChecklist />
+        </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="body2" color="text.secondary">
-              Signed in as {parent?.displayName || parent?.email}
-            </Typography>
-            <Button variant="outlined" color="error" size="small" onClick={handleLogout}>
-              Log out
-            </Button>
-          </Box>
-        </Stack>
+        <Divider sx={{ my: 2 }} />
+
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Signed in as {parent?.displayName || parent?.email}
+          </Typography>
+          <Button variant="outlined" color="error" size="small" onClick={handleLogout}>
+            Log out
+          </Button>
+        </Box>
       </DialogContent>
     </Dialog>
   )

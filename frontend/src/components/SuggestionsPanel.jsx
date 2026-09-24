@@ -10,6 +10,7 @@ import Alert from '@mui/material/Alert'
 import Stack from '@mui/material/Stack'
 import Divider from '@mui/material/Divider'
 import Chip from '@mui/material/Chip'
+import Slider from '@mui/material/Slider'
 import { getSuggestions } from '../api/suggestions'
 import { recordCompletion } from '../api/completions'
 import { ApiError } from '../api/client'
@@ -23,6 +24,33 @@ const RATINGS = [
   { value: 'OK', label: 'It was okay', color: 'secondary' },
   { value: 'SKIPPED', label: 'Skipped', color: 'inherit' },
 ]
+
+// Marks for the "minutes available" slider — a scrub instead of a number
+// field you'd otherwise have to click a tiny up/down arrow many times to
+// move, and a lot friendlier to use with a finger on a phone.
+const TIME_MARKS = [
+  { value: 15, label: '15m' },
+  { value: 30, label: '30m' },
+  { value: 45, label: '45m' },
+  { value: 60, label: '1h' },
+  { value: 90, label: '1.5h' },
+  { value: 120, label: '2h' },
+]
+
+// The default MUI floating label shrinks to a small, light-gray line once
+// a field has a value — barely visible, and these three selects always
+// have a value. Rather than fight that built-in label's own styling
+// (which didn't actually get more readable when bolded via its own sx),
+// each field below gets its own plain, bold, dark label sitting above it
+// instead — same pattern as "Minutes available" — and skips MUI's
+// built-in floating label entirely so there's only one label to read.
+function FieldLabel({ children }) {
+  return (
+    <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
+      {children}
+    </Typography>
+  )
+}
 
 export function SuggestionsPanel({ childList }) {
   const [childId, setChildId] = useState(childList[0]?.id ?? '')
@@ -87,11 +115,11 @@ export function SuggestionsPanel({ childList }) {
         </Typography>
 
         <Box component="form" onSubmit={handleSubmit}>
-        <Stack spacing={2}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+        <Stack spacing={2.5}>
+          <Box>
+            <FieldLabel>For</FieldLabel>
             <TextField
               id="suggestChild"
-              label="For"
               select
               fullWidth
               value={childId}
@@ -103,44 +131,55 @@ export function SuggestionsPanel({ childList }) {
                 </MenuItem>
               ))}
             </TextField>
+          </Box>
 
-            <TextField
-              id="availableMinutes"
-              label="Minutes available"
-              type="number"
-              fullWidth
-              inputProps={{ min: 1 }}
-              value={availableMinutes}
-              onChange={(e) => setAvailableMinutes(e.target.value)}
+          <Box sx={{ px: { xs: 0.5, sm: 1 } }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Minutes available: <Typography component="span" fontWeight={700} color="text.primary">{availableMinutes} min</Typography>
+            </Typography>
+            <Slider
+              value={typeof availableMinutes === 'number' ? availableMinutes : Number(availableMinutes) || 15}
+              onChange={(e, value) => setAvailableMinutes(value)}
+              min={15}
+              max={120}
+              step={5}
+              marks={TIME_MARKS}
+              valueLabelDisplay="auto"
+              valueLabelFormat={(v) => `${v}m`}
+              sx={{ mt: 1 }}
             />
-          </Stack>
+          </Box>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField
-              id="maxMessLevel"
-              label="Mess tolerance"
-              select
-              fullWidth
-              value={maxMessLevel}
-              onChange={(e) => setMaxMessLevel(e.target.value)}
-            >
-              <MenuItem value={1}>Low mess only</MenuItem>
-              <MenuItem value={2}>Some mess okay</MenuItem>
-              <MenuItem value={3}>Any mess level</MenuItem>
-            </TextField>
+            <Box sx={{ flex: 1 }}>
+              <FieldLabel>Mess tolerance</FieldLabel>
+              <TextField
+                id="maxMessLevel"
+                select
+                fullWidth
+                value={maxMessLevel}
+                onChange={(e) => setMaxMessLevel(e.target.value)}
+              >
+                <MenuItem value={1}>Low mess only</MenuItem>
+                <MenuItem value={2}>Some mess okay</MenuItem>
+                <MenuItem value={3}>Any mess level</MenuItem>
+              </TextField>
+            </Box>
 
-            <TextField
-              id="locationType"
-              label="Where"
-              select
-              fullWidth
-              value={locationType}
-              onChange={(e) => setLocationType(e.target.value)}
-            >
-              <MenuItem value="EITHER">No preference</MenuItem>
-              <MenuItem value="INDOOR">Indoor</MenuItem>
-              <MenuItem value="OUTDOOR">Outdoor</MenuItem>
-            </TextField>
+            <Box sx={{ flex: 1 }}>
+              <FieldLabel>Where</FieldLabel>
+              <TextField
+                id="locationType"
+                select
+                fullWidth
+                value={locationType}
+                onChange={(e) => setLocationType(e.target.value)}
+              >
+                <MenuItem value="EITHER">No preference</MenuItem>
+                <MenuItem value="INDOOR">Indoor</MenuItem>
+                <MenuItem value="OUTDOOR">Outdoor</MenuItem>
+              </TextField>
+            </Box>
           </Stack>
 
           <Button type="submit" variant="contained" size="large" disabled={loading}>
@@ -232,13 +271,14 @@ export function SuggestionsPanel({ childList }) {
                 }}
               >
                 <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1} sx={{ mb: 0.5 }}>
-                  <Typography variant="subtitle1" fontWeight={800} sx={{ color: accent }}>
+                  <Typography variant="h6" fontWeight={800} sx={{ color: accent, lineHeight: 1.2 }}>
                     {s.title}
                   </Typography>
                   <Chip
                     size="small"
+                    variant="outlined"
                     label={`${s.durationMinutes} min`}
-                    sx={{ bgcolor: accent, color: '#FFFFFF', flexShrink: 0 }}
+                    sx={{ borderColor: `${accent}66`, color: 'text.secondary', flexShrink: 0, fontWeight: 500 }}
                   />
                 </Stack>
                 <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>

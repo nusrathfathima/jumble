@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
+import ButtonBase from '@mui/material/ButtonBase'
+import Menu from '@mui/material/Menu'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -11,17 +14,27 @@ import { useAuth } from '../context/AuthContext'
  * so "Jumble" always reads as one consistent app rather than a login
  * form that happens to lead somewhere else. The wordmark is two-toned
  * (brand blue + brand pink) rather than a single flat color, which
- * reads as more of a deliberate logo than plain page text.
+ * reads as more of a deliberate logo than plain page text. No icon next
+ * to it — that was tried and didn't land, back to text only.
  *
  * One three-column CSS grid — left, centered wordmark, right — every
  * screen size, so nothing here ever needs a second row or absolute
- * positioning to line up. Signed in: name on the left, Settings (which
- * now also holds Log out) on the right. Signed out: the login page
- * offers a shortcut to sign up and vice versa, on the right.
+ * positioning to line up. Signed in: clicking the name on the left opens
+ * a small popover with a "Log out" button in it (the same button style
+ * Settings uses for its own Log out), rather than a full-size button
+ * sitting in the header at all times. Settings itself stays on the
+ * right. Signed out: the login page offers a shortcut to sign up and
+ * vice versa, on the right.
  */
 export function TopBar({ onOpenSettings }) {
-  const { parent, isAuthenticated } = useAuth()
+  const { parent, isAuthenticated, logout } = useAuth()
   const location = useLocation()
+  const [accountAnchor, setAccountAnchor] = useState(null)
+
+  function handleLogout() {
+    setAccountAnchor(null)
+    logout()
+  }
 
   return (
     <AppBar position="static" color="default" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -36,9 +49,39 @@ export function TopBar({ onOpenSettings }) {
       >
         <Box sx={{ justifySelf: 'start', minWidth: 0 }}>
           {isAuthenticated && (
-            <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: { xs: 140, sm: 220 } }}>
-              {parent?.displayName || parent?.email}
-            </Typography>
+            <>
+              <ButtonBase
+                onClick={(e) => setAccountAnchor(e.currentTarget)}
+                sx={{
+                  borderRadius: 2,
+                  px: 1,
+                  py: 0.5,
+                  ml: -1,
+                  maxWidth: { xs: 140, sm: 220 },
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+              >
+                <Typography variant="body2" color="text.secondary" noWrap>
+                  {parent?.displayName || parent?.email}
+                </Typography>
+              </ButtonBase>
+
+              <Menu
+                anchorEl={accountAnchor}
+                open={Boolean(accountAnchor)}
+                onClose={() => setAccountAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              >
+                <Box sx={{ px: 2, py: 1.5, minWidth: 200 }}>
+                  <Typography variant="body2" color="text.secondary" noWrap sx={{ mb: 1.5 }}>
+                    Signed in as {parent?.displayName || parent?.email}
+                  </Typography>
+                  <Button fullWidth variant="outlined" color="error" size="small" onClick={handleLogout}>
+                    Log out
+                  </Button>
+                </Box>
+              </Menu>
+            </>
           )}
         </Box>
 

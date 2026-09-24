@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
-import Chip from '@mui/material/Chip'
+import FormGroup from '@mui/material/FormGroup'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Checkbox from '@mui/material/Checkbox'
 import Button from '@mui/material/Button'
 import Alert from '@mui/material/Alert'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -24,8 +26,12 @@ const CATEGORY_LABELS = {
 const CATEGORY_ORDER = ['KITCHEN', 'CRAFT', 'RECYCLING', 'OUTDOOR', 'OTHER']
 
 // No outer Card here — this now only ever renders inside the Settings
-// dialog's "What you have on hand" accordion, which already provides its
-// own bordered container, so an inner Card would just be a box in a box.
+// dialog's "What you have on hand" tab, which already provides its own
+// bordered, tinted container, so an inner Card or per-item color wash
+// would just double up on color. Back to plain checkboxes — the chip
+// version made this tab feel like too much color at once — but each
+// checkbox still picks up its category's color when checked, so there's
+// a little visual variety without repainting the whole list.
 export function InventoryChecklist() {
   const [materials, setMaterials] = useState([])
   const [checkedIds, setCheckedIds] = useState(new Set())
@@ -86,7 +92,7 @@ export function InventoryChecklist() {
   return (
     <Box sx={{ textAlign: 'left' }}>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Tap what you have — suggestions will only include activities you can actually do with it.
+        Check off what you have — suggestions will only include activities you can actually do with it.
       </Typography>
 
       {error && (
@@ -97,38 +103,36 @@ export function InventoryChecklist() {
 
       <Stack spacing={2.5}>
         {byCategory.map(({ category, items }) => {
-          // Every item in a category shares one color, so the checklist
-          // reads as a handful of colorful groups rather than a plain
-          // list — and picking what's on hand becomes tapping chips
-          // instead of hunting for tiny checkboxes.
           const categoryColor = colorForTag(category)
           return (
             <Box key={category}>
-              <Typography
-                variant="overline"
-                sx={{ letterSpacing: '0.08em', fontWeight: 700, color: categoryColor }}
-              >
+              <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.08em', fontWeight: 700 }}>
                 {CATEGORY_LABELS[category] || category}
               </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.75 }}>
-                {items.map((material) => {
-                  const selected = checkedIds.has(material.id)
-                  return (
-                    <Chip
-                      key={material.id}
-                      label={material.displayName}
-                      clickable
-                      onClick={() => toggle(material.id)}
-                      variant={selected ? 'filled' : 'outlined'}
-                      sx={
-                        selected
-                          ? { bgcolor: categoryColor, color: '#FFFFFF', fontWeight: 600, borderColor: categoryColor }
-                          : { borderColor: categoryColor, color: categoryColor, fontWeight: 600 }
-                      }
-                    />
-                  )
-                })}
-              </Box>
+              <FormGroup
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                }}
+              >
+                {items.map((material) => (
+                  <FormControlLabel
+                    key={material.id}
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={checkedIds.has(material.id)}
+                        onChange={() => toggle(material.id)}
+                        sx={{
+                          color: `${categoryColor}88`,
+                          '&.Mui-checked': { color: categoryColor },
+                        }}
+                      />
+                    }
+                    label={material.displayName}
+                  />
+                ))}
+              </FormGroup>
             </Box>
           )
         })}

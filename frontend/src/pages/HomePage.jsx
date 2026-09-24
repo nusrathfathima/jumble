@@ -16,6 +16,8 @@ import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import IconButton from '@mui/material/IconButton'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
 
 // The signed-in parent's name and the log out button live in TopBar now,
 // shown above every page rather than just this one — useAuth isn't
@@ -32,6 +34,8 @@ export function HomePage({ settingsOpen, onCloseSettings }) {
   const [tags, setTags] = useState([])
   const [loading, setLoading] = useState(true)
   const [addChildOpen, setAddChildOpen] = useState(false)
+  const theme = useTheme()
+  const fullScreenDialogs = useMediaQuery(theme.breakpoints.down('sm'))
 
   useEffect(() => {
     Promise.all([listChildren(), listTags()])
@@ -95,7 +99,13 @@ export function HomePage({ settingsOpen, onCloseSettings }) {
         </Stack>
       </Container>
 
-      <Dialog open={addChildOpen} onClose={() => setAddChildOpen(false)} fullWidth maxWidth="xs">
+      <Dialog
+        open={addChildOpen}
+        onClose={() => setAddChildOpen(false)}
+        fullWidth
+        maxWidth="xs"
+        fullScreen={fullScreenDialogs}
+      >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           Add a child
           <IconButton size="small" onClick={() => setAddChildOpen(false)} aria-label="Close">
