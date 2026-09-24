@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
-import FormGroup from '@mui/material/FormGroup'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
 import Button from '@mui/material/Button'
 import Alert from '@mui/material/Alert'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -13,6 +9,7 @@ import Stack from '@mui/material/Stack'
 import { listMaterials } from '../api/materials'
 import { getInventory, updateInventory } from '../api/inventory'
 import { ApiError } from '../api/client'
+import { colorForTag } from '../theme'
 
 const CATEGORY_LABELS = {
   KITCHEN: 'Kitchen',
@@ -26,6 +23,9 @@ const CATEGORY_LABELS = {
 // whatever order the database happens to return them in.
 const CATEGORY_ORDER = ['KITCHEN', 'CRAFT', 'RECYCLING', 'OUTDOOR', 'OTHER']
 
+// No outer Card here — this now only ever renders inside the Settings
+// dialog's "What you have on hand" accordion, which already provides its
+// own bordered container, so an inner Card would just be a box in a box.
 export function InventoryChecklist() {
   const [materials, setMaterials] = useState([])
   const [checkedIds, setCheckedIds] = useState(new Set())
@@ -72,16 +72,9 @@ export function InventoryChecklist() {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            What you have on hand
-          </Typography>
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-            <CircularProgress size={28} />
-          </Box>
-        </CardContent>
-      </Card>
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+        <CircularProgress size={28} />
+      </Box>
     )
   }
 
@@ -91,61 +84,66 @@ export function InventoryChecklist() {
   })).filter((group) => group.items.length > 0)
 
   return (
-    <Card>
-      <CardContent sx={{ p: 3, textAlign: 'left' }}>
-        <Typography variant="h6" gutterBottom>
-          What you have on hand
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Suggestions will only include activities you can actually do with what&rsquo;s checked below.
-        </Typography>
+    <Box sx={{ textAlign: 'left' }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Tap what you have — suggestions will only include activities you can actually do with it.
+      </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-        <Stack spacing={2.5}>
-          {byCategory.map(({ category, items }) => (
+      <Stack spacing={2.5}>
+        {byCategory.map(({ category, items }) => {
+          // Every item in a category shares one color, so the checklist
+          // reads as a handful of colorful groups rather than a plain
+          // list — and picking what's on hand becomes tapping chips
+          // instead of hunting for tiny checkboxes.
+          const categoryColor = colorForTag(category)
+          return (
             <Box key={category}>
               <Typography
                 variant="overline"
-                color="text.secondary"
-                sx={{ letterSpacing: '0.08em', fontWeight: 700 }}
+                sx={{ letterSpacing: '0.08em', fontWeight: 700, color: categoryColor }}
               >
                 {CATEGORY_LABELS[category] || category}
               </Typography>
-              <FormGroup sx={{ display: 'grid', gridTemplateColumns: '1fr' }}>
-                {items.map((material) => (
-                  <FormControlLabel
-                    key={material.id}
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={checkedIds.has(material.id)}
-                        onChange={() => toggle(material.id)}
-                      />
-                    }
-                    label={material.displayName}
-                  />
-                ))}
-              </FormGroup>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.75 }}>
+                {items.map((material) => {
+                  const selected = checkedIds.has(material.id)
+                  return (
+                    <Chip
+                      key={material.id}
+                      label={material.displayName}
+                      clickable
+                      onClick={() => toggle(material.id)}
+                      variant={selected ? 'filled' : 'outlined'}
+                      sx={
+                        selected
+                          ? { bgcolor: categoryColor, color: '#FFFFFF', fontWeight: 600, borderColor: categoryColor }
+                          : { borderColor: categoryColor, color: categoryColor, fontWeight: 600 }
+                      }
+                    />
+                  )
+                })}
+              </Box>
             </Box>
-          ))}
-        </Stack>
+          )
+        })}
+      </Stack>
 
-        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 3 }}>
-          <Button variant="contained" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : 'Save inventory'}
-          </Button>
-          {justSaved && (
-            <Typography variant="body2" color="secondary.main" fontWeight={600}>
-              Saved.
-            </Typography>
-          )}
-        </Stack>
-      </CardContent>
-    </Card>
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 3 }}>
+        <Button variant="contained" onClick={handleSave} disabled={saving}>
+          {saving ? 'Saving…' : 'Save inventory'}
+        </Button>
+        {justSaved && (
+          <Typography variant="body2" color="secondary.main" fontWeight={600}>
+            Saved.
+          </Typography>
+        )}
+      </Stack>
+    </Box>
   )
 }

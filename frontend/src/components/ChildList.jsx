@@ -17,18 +17,23 @@ export function ChildList({ childList, tags }) {
 
   return (
     <Stack spacing={1.5}>
-      {childList.map((child) => (
+      {childList.map((child) => {
+        const accent = colorForTag(String(child.id))
+        return (
         <Box
           key={child.id}
           sx={{
             border: '1px solid',
             borderColor: 'divider',
+            borderLeft: '5px solid',
+            borderLeftColor: accent,
             borderRadius: 3,
             p: 2,
+            bgcolor: `${accent}0D`,
             textAlign: 'left',
           }}
         >
-          <Typography variant="subtitle1" fontWeight={700}>
+          <Typography variant="subtitle1" fontWeight={800} sx={{ color: accent }}>
             {child.name}
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -57,7 +62,8 @@ export function ChildList({ childList, tags }) {
             </Box>
           )}
         </Box>
-      ))}
+        )
+      })}
     </Stack>
   )
 }

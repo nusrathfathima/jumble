@@ -58,15 +58,7 @@ export function AddChildForm({ tags, onChildAdded }) {
   }
 
   return (
-    <Box
-      component="form"
-      onSubmit={handleSubmit}
-      sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: 2.5, textAlign: 'left' }}
-    >
-      <Typography variant="h6" gutterBottom>
-        Add a child
-      </Typography>
-
+    <Box component="form" onSubmit={handleSubmit} sx={{ textAlign: 'left' }}>
       <Stack spacing={2}>
         {error && <Alert severity="error">{error}</Alert>}
 

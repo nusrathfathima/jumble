@@ -13,6 +13,7 @@ import Chip from '@mui/material/Chip'
 import { getSuggestions } from '../api/suggestions'
 import { recordCompletion } from '../api/completions'
 import { ApiError } from '../api/client'
+import { colorForTag } from '../theme'
 
 // Rating buttons shown on each suggestion card. The value sent to the
 // backend has to match the CHECK constraint on completion.rating exactly
@@ -166,7 +167,7 @@ export function SuggestionsPanel({ childList }) {
               <Typography variant="subtitle2" gutterBottom>
                 You&rsquo;re close on a few — just missing some materials:
               </Typography>
-              <Stack spacing={1.5}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
                 {suggestions.nearMisses.map((nm) => (
                   <Box
                     key={nm.activityId}
@@ -188,19 +189,32 @@ export function SuggestionsPanel({ childList }) {
                     </Typography>
                   </Box>
                 ))}
-              </Stack>
+              </Box>
             </Box>
           )}
         </Box>
       )}
 
       {suggestions && suggestions.suggestions.length > 0 && (
-        <Stack spacing={2} sx={{ mt: 2 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+            gap: 2,
+            mt: 2,
+          }}
+        >
           {suggestions.suggestions.map((s) => {
             const status = feedbackStatus[s.activityId]
             const isDone = status === 'done'
             const isSubmitting = status === 'submitting'
             const errorMessage = status && status !== 'submitting' && status !== 'done' ? status : null
+            // Each card gets its own color from the same hash used for
+            // interest tags, so a list of suggestions reads as varied and
+            // fun rather than a wall of identical gray boxes — while still
+            // being the same color every time that particular activity
+            // comes up.
+            const accent = colorForTag(String(s.activityId))
 
             return (
               <Box
@@ -208,24 +222,33 @@ export function SuggestionsPanel({ childList }) {
                 sx={{
                   border: '1px solid',
                   borderColor: 'divider',
+                  borderLeft: '5px solid',
+                  borderLeftColor: accent,
                   borderRadius: 3,
                   p: 2,
+                  bgcolor: `${accent}0D`,
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
               >
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
-                  <Typography variant="subtitle1" fontWeight={700}>
+                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1} sx={{ mb: 0.5 }}>
+                  <Typography variant="subtitle1" fontWeight={800} sx={{ color: accent }}>
                     {s.title}
                   </Typography>
-                  <Chip size="small" label={`${s.durationMinutes} min`} variant="outlined" />
+                  <Chip
+                    size="small"
+                    label={`${s.durationMinutes} min`}
+                    sx={{ bgcolor: accent, color: '#FFFFFF', flexShrink: 0 }}
+                  />
                 </Stack>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
                   {s.explanation}
                 </Typography>
 
-                <Divider sx={{ my: 1.5 }} />
+                <Divider sx={{ my: 1.5, borderColor: `${accent}33` }} />
 
                 {isDone ? (
-                  <Typography variant="body2" color="secondary.main">
+                  <Typography variant="body2" color="secondary.main" fontWeight={600}>
                     Thanks — that&rsquo;s saved, and it&rsquo;ll shape what gets suggested next time.
                   </Typography>
                 ) : (
@@ -257,7 +280,7 @@ export function SuggestionsPanel({ childList }) {
               </Box>
             )
           })}
-        </Stack>
+        </Box>
       )}
       </CardContent>
     </Card>
