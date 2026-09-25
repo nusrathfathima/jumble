@@ -13,6 +13,7 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import { ChildList } from './ChildList'
 import { InventoryChecklist } from './InventoryChecklist'
+import { LocationSetting } from './LocationSetting'
 import { useAuth } from '../context/AuthContext'
 
 const PANELS = [
@@ -37,7 +38,7 @@ const PANELS = [
  * Full-screen on phones so the tab bar, chips, and slider all get real
  * room instead of being squeezed into a small centered box.
  */
-export function SettingsDialog({ open, onClose, childList, tags }) {
+export function SettingsDialog({ open, onClose, childList, tags, locationSet, onLocationChanged }) {
   const { parent, logout } = useAuth()
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
@@ -111,6 +112,10 @@ export function SettingsDialog({ open, onClose, childList, tags }) {
         >
           <InventoryChecklist />
         </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <LocationSetting locationSet={locationSet} onChanged={onLocationChanged} />
 
         <Divider sx={{ my: 2 }} />
 

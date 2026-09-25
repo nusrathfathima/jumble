@@ -2,7 +2,9 @@ package com.jumble.backend.controller;
 
 import com.jumble.backend.model.Child;
 import com.jumble.backend.model.ChildTagWeight;
+import com.jumble.backend.model.Parent;
 import com.jumble.backend.repository.*;
+import com.jumble.backend.service.WeatherService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,6 +14,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -31,16 +34,22 @@ public class SuggestionController {
     private final ActivityRepository activityRepository;
     private final ActivityTagRepository activityTagRepository;
     private final ChildTagWeightRepository childTagWeightRepository;
+    private final ParentRepository parentRepository;
+    private final WeatherService weatherService;
 
     public SuggestionController(
             ChildRepository childRepository,
             ActivityRepository activityRepository,
             ActivityTagRepository activityTagRepository,
-            ChildTagWeightRepository childTagWeightRepository) {
+            ChildTagWeightRepository childTagWeightRepository,
+            ParentRepository parentRepository,
+            WeatherService weatherService) {
         this.childRepository = childRepository;
         this.activityRepository = activityRepository;
         this.activityTagRepository = activityTagRepository;
         this.childTagWeightRepository = childTagWeightRepository;
+        this.parentRepository = parentRepository;
+        this.weatherService = weatherService;
     }
 
     public record SuggestionView(
@@ -58,7 +67,14 @@ public class SuggestionController {
             Long activityId, String title, short durationMinutes, List<String> missingMaterials) {
     }
 
-    public record SuggestionsResponse(List<SuggestionView> suggestions, List<NearMissView> nearMisses) {
+    /**
+     * weatherWarning is only ever set in one situation: the forecast is
+     * wet AND the parent explicitly picked Outdoor. Their choice is
+     * respected (maybe the plan is puddle jumping in rain boots), but they
+     * get a heads-up. Otherwise it is null.
+     */
+    public record SuggestionsResponse(
+            List<SuggestionView> suggestions, List<NearMissView> nearMisses, String weatherWarning) {
     }
 
     public record ErrorResponse(String message) {
@@ -96,6 +112,29 @@ public class SuggestionController {
             return ResponseEntity.badRequest().body(new ErrorResponse("availableMinutes must be positive"));
         }
 
+        // Weather-aware filtering (spec section 3, item 9). Only kicks in
+        // when the parent has saved a location and today looks wet:
+        //   - "No preference" (EITHER) quietly becomes INDOOR, which the
+        //     query already treats as "INDOOR or EITHER activities", so
+        //     only the outdoor-only ones drop out. No SQL change needed.
+        //   - An explicit OUTDOOR is respected, with a warning attached.
+        //   - An explicit INDOOR is unaffected either way.
+        // If the weather can't be fetched, nothing changes at all.
+        Parent parent = parentRepository.findById(currentParentId()).orElse(null);
+        Optional<WeatherService.TodayWeather> weather = parent == null
+                ? Optional.empty()
+                : weatherService.getToday(parent.getLatitude(), parent.getLongitude());
+        boolean wetDay = weather.map(w -> !w.outdoorFriendly()).orElse(false);
+
+        String effectiveLocation = locationType;
+        String weatherWarning = null;
+        if (wetDay && "EITHER".equals(locationType)) {
+            effectiveLocation = "INDOOR";
+        } else if (wetDay && "OUTDOOR".equals(locationType)) {
+            weatherWarning = "Heads up: " + weather.get().condition().toLowerCase()
+                    + " in today's forecast. Showing outdoor ideas anyway, since you picked Outdoor.";
+        }
+
         // The child's current weight for every tag, keyed by tag id — used
         // below to name which of the child's interests each suggestion
         // actually matches, per the schema doc's "explain this suggestion"
@@ -104,7 +143,7 @@ public class SuggestionController {
                 .collect(Collectors.toMap(w -> w.getTag().getId(), w -> w));
 
         List<ActivityRepository.SuggestionProjection> rows = activityRepository.findSuggestions(
-                childId, availableMinutes, maxMessLevel, locationType, repeatWindowDays);
+                childId, availableMinutes, maxMessLevel, effectiveLocation, repeatWindowDays);
 
         List<SuggestionView> views = rows.stream()
                 .map(row -> new SuggestionView(
@@ -120,7 +159,7 @@ public class SuggestionController {
         // that runs on every successful search.
         List<NearMissView> nearMisses = views.isEmpty()
                 ? activityRepository
-                        .findNearMisses(childId, availableMinutes, maxMessLevel, locationType, repeatWindowDays)
+                        .findNearMisses(childId, availableMinutes, maxMessLevel, effectiveLocation, repeatWindowDays)
                         .stream()
                         .map(row -> new NearMissView(
                                 row.getId(),
@@ -130,7 +169,7 @@ public class SuggestionController {
                         .toList()
                 : List.of();
 
-        return ResponseEntity.ok(new SuggestionsResponse(views, nearMisses));
+        return ResponseEntity.ok(new SuggestionsResponse(views, nearMisses, weatherWarning));
     }
 
     /**
@@ -150,9 +189,9 @@ public class SuggestionController {
      * Assembles the explanation entirely from facts already in hand — no
      * extra queries beyond the one tag lookup — so it's a faithful
      * description of the computation the score came from, not a
-     * plausible-sounding story invented after the fact. Weather isn't
-     * factored in yet (that's a separate, not-yet-built integration), so
-     * it's simply omitted rather than faked.
+     * plausible-sounding story invented after the fact. Weather is not
+     * mentioned per card; it is shown once, in the weather line above the
+     * suggestion form, instead of being repeated on every card.
      */
     private String buildExplanation(
             ActivityRepository.SuggestionProjection row,

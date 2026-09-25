@@ -11,6 +11,7 @@ import Stack from '@mui/material/Stack'
 import Divider from '@mui/material/Divider'
 import Chip from '@mui/material/Chip'
 import Slider from '@mui/material/Slider'
+import Link from '@mui/material/Link'
 import { getSuggestions } from '../api/suggestions'
 import { recordCompletion } from '../api/completions'
 import { ApiError } from '../api/client'
@@ -52,7 +53,62 @@ function FieldLabel({ children }) {
   )
 }
 
-export function SuggestionsPanel({ childList }) {
+// The one line above the form that says what today's weather is and
+// what that means for the suggestions. Open-Meteo's free tier requires a
+// credit line (CC BY licence), so the small link at the end is required,
+// not decoration.
+function WeatherLine({ weather }) {
+  if (!weather) {
+    return null
+  }
+
+  if (!weather.locationSet) {
+    return (
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Want rainy-day smarts? Add your location in Settings.
+      </Typography>
+    )
+  }
+
+  if (!weather.available) {
+    return null
+  }
+
+  const temp = weather.tempC != null ? `, ${Math.round(weather.tempC)}°C` : ''
+  const wet = weather.outdoorFriendly === false
+
+  return (
+    <Box
+      sx={{
+        mb: 2,
+        px: 1.5,
+        py: 1,
+        borderRadius: 2,
+        bgcolor: wet ? '#2FA8E014' : 'action.hover',
+      }}
+    >
+      <Typography variant="body2" color="text.primary">
+        <Typography component="span" fontWeight={700}>
+          Today: {weather.condition}
+          {temp}
+        </Typography>
+        {wet && ' · showing indoor ideas, unless you pick Outdoor.'}
+      </Typography>
+      <Link
+        href="https://open-meteo.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        variant="caption"
+        color="text.secondary"
+        underline="hover"
+      >
+        Weather data by Open-Meteo.com
+      </Link>
+    </Box>
+  )
+}
+
+export function SuggestionsPanel({ childList, weather }) {
   const [childId, setChildId] = useState(childList[0]?.id ?? '')
   const [availableMinutes, setAvailableMinutes] = useState(30)
   const [maxMessLevel, setMaxMessLevel] = useState(3)
@@ -113,6 +169,8 @@ export function SuggestionsPanel({ childList }) {
         <Typography variant="h5" gutterBottom>
           Get a suggestion
         </Typography>
+
+        <WeatherLine weather={weather} />
 
         <Box component="form" onSubmit={handleSubmit}>
         <Stack spacing={2.5}>
@@ -191,6 +249,12 @@ export function SuggestionsPanel({ childList }) {
       {error && (
         <Alert severity="error" sx={{ mt: 2 }}>
           {error}
+        </Alert>
+      )}
+
+      {suggestions?.weatherWarning && (
+        <Alert severity="warning" sx={{ mt: 2 }}>
+          {suggestions.weatherWarning}
         </Alert>
       )}
 

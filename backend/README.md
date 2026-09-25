@@ -222,6 +222,52 @@ A few things worth deliberately testing:
 - **Favorite tag changes with real usage:** complete several activities that share a tag (say, three Art activities) for a child who previously favored a different tag — `favoriteTag` should flip to Art once it has the highest count.
 - **Ownership:** requesting `/api/children/{id}/stats` for a child that belongs to a different parent's account should come back `404`, the same as every other child-scoped endpoint.
 
+## Trying out weather-aware filtering
+
+On a wet day, "No preference" suggestions quietly skip outdoor-only activities. It only kicks in once a parent has saved a location, and if the weather can't be fetched, suggestions just work the way they did before.
+
+How it decides: Jumble asks [Open-Meteo](https://open-meteo.com) (free, no API key) for today's weather code, high temperature, and highest chance of precipitation. The day counts as wet if the code means drizzle, rain, snow, showers, or thunderstorms, or if the chance of precipitation is 50% or more. The answer is cached in `weather_cache`, one row per ~11 km area per day, so a whole neighbourhood costs one API call a day, however many times anyone asks for suggestions.
+
+What a wet day changes:
+
+- **No preference:** outdoor-only activities are left out (activities marked "either" still show).
+- **Outdoor, picked on purpose:** outdoor ideas still show, and the response includes a `weatherWarning` message.
+- **Indoor:** nothing changes.
+
+Save a location (the browser's "Use my location" button in Settings does this for you):
+
+```
+curl -X PUT http://localhost:8080/api/me/location -H "Content-Type: application/json" -H "Authorization: Bearer <TOKEN>" -d "{\"latitude\":41.88,\"longitude\":-87.63}"
+```
+
+The location is stored rounded to 2 decimal places (about 1 km), never the exact GPS fix.
+
+Check today's weather for that location:
+
+```
+curl http://localhost:8080/api/weather/today -H "Authorization: Bearer <TOKEN>"
+```
+
+```json
+{ "locationSet": true, "available": true, "condition": "Rain", "tempC": 12.4, "precipitationChance": 85, "outdoorFriendly": false }
+```
+
+`locationSet: false` means no location is saved yet. `available: false` means a location is saved but the weather couldn't be fetched right now.
+
+Remove the location (turns weather filtering off again):
+
+```
+curl -X DELETE http://localhost:8080/api/me/location -H "Authorization: Bearer <TOKEN>"
+```
+
+A few things worth deliberately testing:
+
+- **See a wet day for real:** look up a city where it's raining today, save its coordinates with the `PUT` above, then call `/api/weather/today` and confirm `outdoorFriendly` is `false`. Then request suggestions with `locationType=EITHER`, and again with `locationType=OUTDOOR`, and compare: the first should have no outdoor-only activities, the second should have outdoor ones plus a `weatherWarning`.
+- **The cache works:** call `/api/weather/today` a few times. Only the first call of the day for that area should reach Open-Meteo; you can see the single row in the `weather_cache` table in Neon.
+- **No location, no change:** `DELETE` the location, and suggestions should behave exactly as before, with `weatherWarning` always `null`.
+
+Open-Meteo's free tier requires credit under its CC BY licence, so the weather line on the home page includes a small "Weather data by Open-Meteo.com" link.
+
 ## What's here so far
 
 - `JumbleBackendApplication.java` — the entry point.
@@ -248,9 +294,12 @@ A few things worth deliberately testing:
 - `controller/CompletionController.java` — `GET/POST /api/children/{id}/completions`, the feedback loop: recording a rated completion saves the history row (which the suggestions query's repeat suppression reads) and nudges that activity's tags' weights up or down for that child in the same transaction (schema doc section 5).
 - `model/Completion.java` and `repository/CompletionRepository.java` — the `completion` table's entity, plus the native weight-adjustment `UPDATE` from schema doc section 5, ported the same way the suggestions and near-miss queries were: as a native query, because it's a plain, well-understood `UPDATE ... WHERE tag_id IN (subquery)`, not something JPQL or Criteria API would express any more clearly. `CompletionRepository` now also has the four count lookups and the native `findTopTag` query that `StatsController` runs.
 - `controller/StatsController.java` — `GET /api/children/{id}/stats`, the aggregate view on top of the completion log: total completions, this-calendar-month count, a loved/ok/skipped breakdown, and the child's favorite tag by completion count.
+- `controller/WeatherController.java` — `PUT/DELETE /api/me/location` (save or forget the parent's location, stored rounded to about 1 km) and `GET /api/weather/today` (today's weather for the home page line).
+- `service/WeatherService.java` — calls Open-Meteo with short timeouts, decides whether today is wet, and caches one result per area per day. Returns nothing (instead of an error) if there's no location or the lookup fails, so weather can never break suggestions.
+- `model/WeatherCache.java` and `repository/WeatherCacheRepository.java` — the `weather_cache` table from `V1`, finally in use. `SuggestionController` now reads today's weather and swaps "No preference" to indoor on wet days, or adds a `weatherWarning` when Outdoor was picked on purpose.
 
 `TestDataController.java` has been deleted — it was scaffolding for proving Parent/Child persistence worked, and the real endpoints above have replaced it.
 
 **A note on `Short` vs `Integer`:** `Tag.id`, `Material.id`, and the small numeric fields on `Activity`/`ActivityStep` (`minAgeYears`, `maxAgeYears`, `durationMinutes`, `messLevel`, `stepNumber`) are all `Short` in Java, not `Integer`, because their database columns are `SMALLINT`. Hibernate's schema validation checks the exact column type, and this mismatch caused a real startup failure earlier in this project — worth remembering if a future entity maps to a `SMALLINT` column (anything with `GENERATED ALWAYS AS IDENTITY` on a `SMALLINT` in the schema doc, which is the small lookup tables and small numeric fields, as opposed to `BIGINT` ones like `parent`, `child`, and `activity` ids, which correctly use `Long`).
 
-Next up: weather-aware filtering (skip outdoor suggestions on rainy days, based on the parent's location).
+That completes every MVP feature in the spec. Next up would be the stretch features (weekly digest email, photo log, household sharing, admin view) and deployment.

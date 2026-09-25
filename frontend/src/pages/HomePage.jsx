@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { listChildren } from '../api/children'
 import { listTags } from '../api/tags'
+import { getTodayWeather } from '../api/weather'
 import { AddChildForm } from '../components/AddChildForm'
 import { SuggestionsPanel } from '../components/SuggestionsPanel'
 import { SettingsDialog } from '../components/SettingsDialog'
@@ -34,6 +35,9 @@ export function HomePage({ settingsOpen, onCloseSettings }) {
   const [tags, setTags] = useState([])
   const [loading, setLoading] = useState(true)
   const [addChildOpen, setAddChildOpen] = useState(false)
+  // Fetched on its own, separately from children/tags, so a slow or
+  // failed weather lookup never holds up the rest of the page.
+  const [weather, setWeather] = useState(null)
   const theme = useTheme()
   const fullScreenDialogs = useMediaQuery(theme.breakpoints.down('sm'))
 
@@ -49,7 +53,15 @@ export function HomePage({ settingsOpen, onCloseSettings }) {
       // one screen relying on this pattern.
       .catch(() => {})
       .finally(() => setLoading(false))
+
+    loadWeather()
   }, [])
+
+  function loadWeather() {
+    getTodayWeather()
+      .then(setWeather)
+      .catch(() => setWeather(null))
+  }
 
   function handleChildAdded(child) {
     setChildren((prev) => [...prev, child])
@@ -94,7 +106,7 @@ export function HomePage({ settingsOpen, onCloseSettings }) {
               </CardContent>
             </Card>
           ) : (
-            <SuggestionsPanel childList={children} />
+            <SuggestionsPanel childList={children} weather={weather} />
           )}
         </Stack>
       </Container>
@@ -119,7 +131,14 @@ export function HomePage({ settingsOpen, onCloseSettings }) {
         </DialogContent>
       </Dialog>
 
-      <SettingsDialog open={settingsOpen} onClose={onCloseSettings} childList={children} tags={tags} />
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={onCloseSettings}
+        childList={children}
+        tags={tags}
+        locationSet={Boolean(weather?.locationSet)}
+        onLocationChanged={loadWeather}
+      />
     </Box>
   )
 }
