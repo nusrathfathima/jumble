@@ -1,5 +1,6 @@
 package com.jumble.backend.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -26,15 +27,18 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    // Same CORS_ALLOWED_ORIGINS setting SecurityConfig reads, so the two
+    // can never disagree about who is allowed in.
+    private final String[] allowedOrigins;
+
+    public WebConfig(@Value("${cors.allowed-origins}") String[] allowedOrigins) {
+        this.allowedOrigins = allowedOrigins;
+    }
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOriginPatterns(
-                        "http://localhost:5173",
-                        "http://localhost:3000"
-                        // Add the deployed Vercel URL here once the frontend is live,
-                        // e.g. "https://jumble.vercel.app"
-                )
+                .allowedOrigins(allowedOrigins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowCredentials(true);
     }

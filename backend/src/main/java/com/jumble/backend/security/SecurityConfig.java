@@ -1,5 +1,6 @@
 package com.jumble.backend.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -43,7 +44,16 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+    // Which websites may call this API from a browser. Comes from the
+    // CORS_ALLOWED_ORIGINS environment variable (comma-separated), so the
+    // deployed frontend URL is a setting on Render, not something baked
+    // into the code. Defaults to the local Vite dev server.
+    private final List<String> allowedOrigins;
+
+    public SecurityConfig(
+            JwtAuthFilter jwtAuthFilter,
+            @Value("${cors.allowed-origins}") List<String> allowedOrigins) {
+        this.allowedOrigins = allowedOrigins;
         this.jwtAuthFilter = jwtAuthFilter;
     }
 
@@ -73,12 +83,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Local Vite dev server plus the deployed Vercel frontend. Update
-        // the second entry once the real Vercel URL is known.
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "https://jumble.vercel.app"
-        ));
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 
