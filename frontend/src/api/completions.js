@@ -6,3 +6,8 @@ export function recordCompletion(childId, { activityId, rating, note }) {
     body: { activityId, rating, note },
   })
 }
+
+// Newest first: [{ id, activityId, activityTitle, rating, note, completedAt }]
+export function listCompletions(childId) {
+  return apiFetch(`/api/children/${childId}/completions`)
+}

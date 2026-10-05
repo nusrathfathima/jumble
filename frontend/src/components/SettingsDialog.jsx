@@ -17,8 +17,8 @@ import { LocationSetting } from './LocationSetting'
 import { useAuth } from '../context/AuthContext'
 
 const PANELS = [
-  { key: 'children', label: 'Children', accent: '#2FA8E0' },
-  { key: 'inventory', label: 'What you have on hand', accent: '#FF6FA5' },
+  { key: 'children', label: 'Children', accent: '#1B6FA8' },
+  { key: 'inventory', label: 'What you have on hand', accent: '#B52A60' },
 ]
 
 /**
@@ -88,10 +88,7 @@ export function SettingsDialog({ open, onClose, childList, tags, locationSet, on
             display: tab === 0 ? 'block' : 'none',
             border: '1px solid',
             borderColor: 'divider',
-            borderLeft: '5px solid',
-            borderLeftColor: PANELS[0].accent,
             borderRadius: 3,
-            bgcolor: `${PANELS[0].accent}0D`,
             p: 2,
           }}
         >

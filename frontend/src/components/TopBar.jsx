@@ -8,6 +8,8 @@ import ButtonBase from '@mui/material/ButtonBase'
 import Menu from '@mui/material/Menu'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { WORDMARK_BLUE, WORDMARK_PINK } from '../theme'
+import { ChevronDownIcon, SettingsIcon } from './Icons'
 
 /**
  * Shown on every screen — login, signup, and the logged-in home page —
@@ -37,14 +39,14 @@ export function TopBar({ onOpenSettings }) {
   }
 
   return (
-    <AppBar position="static" color="default" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+    <AppBar position="sticky" color="default" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
       <Toolbar
         sx={{
           display: 'grid',
           gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center',
           columnGap: 1,
-          py: 1,
+          minHeight: { xs: 56, sm: 64 },
         }}
       >
         <Box sx={{ justifySelf: 'start', minWidth: 0 }}>
@@ -61,9 +63,12 @@ export function TopBar({ onOpenSettings }) {
                   '&:hover': { bgcolor: 'action.hover' },
                 }}
               >
-                <Typography variant="body2" color="text.secondary" noWrap>
+                <Typography variant="body2" color="text.secondary" noWrap sx={{ fontWeight: 700 }}>
                   {parent?.displayName || parent?.email}
                 </Typography>
+                <Box component="span" sx={{ display: 'flex', color: 'text.secondary', ml: 0.5, flexShrink: 0 }}>
+                  <ChevronDownIcon size={14} strokeWidth={2.5} />
+                </Box>
               </ButtonBase>
 
               <Menu
@@ -88,12 +93,12 @@ export function TopBar({ onOpenSettings }) {
         <Typography
           variant="h4"
           component="div"
-          sx={{ fontWeight: 800, letterSpacing: '-0.02em', userSelect: 'none', justifySelf: 'center' }}
+          sx={{ fontSize: { xs: 28, sm: 32 }, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, userSelect: 'none', justifySelf: 'center' }}
         >
-          <Box component="span" sx={{ color: 'primary.main' }}>
+          <Box component="span" sx={{ color: WORDMARK_BLUE }}>
             Jum
           </Box>
-          <Box component="span" sx={{ color: 'secondary.main' }}>
+          <Box component="span" sx={{ color: WORDMARK_PINK }}>
             ble
           </Box>
         </Typography>
@@ -104,11 +109,10 @@ export function TopBar({ onOpenSettings }) {
               variant="text"
               size="small"
               onClick={onOpenSettings}
-              sx={{ color: 'text.secondary', minWidth: 0, px: { xs: 1, sm: 1.5 } }}
+              aria-label="Settings"
+              sx={{ color: 'text.secondary', minWidth: 44, minHeight: 44, px: { xs: 1, sm: 1.5 } }}
             >
-              <Typography component="span" sx={{ fontSize: 18, lineHeight: 1 }}>
-                ⚙
-              </Typography>
+              <SettingsIcon size={22} />
               <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 0.75 }}>
                 Settings
               </Box>

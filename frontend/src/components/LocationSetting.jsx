@@ -69,7 +69,7 @@ export function LocationSetting({ locationSet, onChanged }) {
           ? 'Location saved. Outdoor ideas are skipped on rainy days.'
           : 'Share your location so outdoor ideas are skipped on rainy days.'}
       </Typography>
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
         <Button variant={locationSet ? 'outlined' : 'contained'} size="small" disabled={busy} onClick={handleUseMyLocation}>
           {busy ? 'Working…' : locationSet ? 'Update location' : 'Use my location'}
         </Button>

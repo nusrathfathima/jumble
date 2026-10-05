@@ -1,34 +1,42 @@
 import { useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { TopBar } from './components/TopBar'
-import { HomePage } from './pages/HomePage'
+import { AppShell } from './components/AppShell'
+import { TodayPage } from './pages/TodayPage'
+import { KidsPage } from './pages/KidsPage'
+import { HistoryPage } from './pages/HistoryPage'
 import { LoginPage } from './pages/LoginPage'
 import { SignupPage } from './pages/SignupPage'
 
 function App() {
-  // Lifted up here rather than owned by HomePage, since the button that
-  // opens Settings lives in TopBar — a sibling of the router, not a
-  // descendant of HomePage — so the two need a shared place to meet.
+  // Lifted up here, since the button that opens Settings lives in TopBar,
+  // which sits above the router, not inside any one page.
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   return (
     <>
-      {/* Rendered above the router, not inside any one route, so "Jumble"
-          shows the same way whether you're looking at the login page, the
-          signup page, or the signed-in home page. */}
+      {/* Above the router, so "Jumble" shows the same way on every page. */}
       <TopBar onOpenSettings={() => setSettingsOpen(true)} />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route
-          path="/"
           element={
             <ProtectedRoute>
-              <HomePage settingsOpen={settingsOpen} onCloseSettings={() => setSettingsOpen(false)} />
+              <AppShell
+                settingsOpen={settingsOpen}
+                onOpenSettings={() => setSettingsOpen(true)}
+                onCloseSettings={() => setSettingsOpen(false)}
+              />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<TodayPage />} />
+          <Route path="kids" element={<KidsPage />} />
+          <Route path="history" element={<HistoryPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   )

@@ -1,25 +1,24 @@
 import { createTheme } from '@mui/material/styles'
 
-// Jumble's visual identity, take three: "Bubblegum & Sky" — a bright sky
-// blue for structure and actions, a bubblegum pink for energy, and a
-// sunshine-yellow accent reserved for the third step badge and small
-// highlights. Background stays crisp white so these colors actually pop
-// instead of fighting a tinted backdrop. This palette (over "Citrus Pop",
-// "Tropical Punch", "Berry Bright") was the one picked after two earlier,
-// more muted passes read as flat rather than playful.
+// Jumble's visual identity: "Bubblegum & Sky, refined" (design direction
+// A). Same sky blue and bubblegum pink family as before, but a shade
+// deeper so white text on a blue button and pink text on white both meet
+// accessibility contrast. A very light blue-white page background, white
+// cards, and colour used for meaning (actions, selection, each child)
+// rather than decoration.
 export const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#2FA8E0',
-      dark: '#1C86BB',
-      light: '#6FC6ED',
+      main: '#1B6FA8',
+      dark: '#13527D',
+      light: '#E4F2FB',
       contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#FF6FA5',
-      dark: '#E14F87',
-      light: '#FF9FC4',
+      main: '#D63A75',
+      dark: '#B52A60',
+      light: '#FDE8F0',
       contrastText: '#FFFFFF',
     },
     error: {
@@ -32,14 +31,14 @@ export const theme = createTheme({
       main: '#2FB380',
     },
     background: {
-      default: '#FBFEFF',
+      default: '#F6FAFD',
       paper: '#FFFFFF',
     },
     text: {
-      primary: '#1F2A44',
-      secondary: '#5B6B8C',
+      primary: '#1C2B39',
+      secondary: '#5A6B7A',
     },
-    divider: '#E3EEF7',
+    divider: '#E2ECF3',
   },
   shape: {
     borderRadius: 16,
@@ -62,18 +61,19 @@ export const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: '#FBFEFF',
+          backgroundColor: '#F6FAFD',
         },
       },
     },
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 999,
-          paddingLeft: 20,
-          paddingRight: 20,
-          paddingTop: 10,
-          paddingBottom: 10,
+          borderRadius: 14,
+          paddingLeft: 18,
+          paddingRight: 18,
+          paddingTop: 9,
+          paddingBottom: 9,
+          fontWeight: 700,
         },
       },
     },
@@ -87,9 +87,9 @@ export const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 20,
-          border: '1px solid #E3EEF7',
-          boxShadow: '0 6px 20px rgba(31, 42, 68, 0.06)',
+          borderRadius: 22,
+          border: '1px solid #E2ECF3',
+          boxShadow: '0 6px 20px rgba(27, 111, 168, 0.08)',
         },
       },
     },
@@ -146,4 +146,31 @@ export function colorForTag(slug) {
     hash = (hash * 31 + slug.charCodeAt(i)) >>> 0
   }
   return TAG_COLORS[hash % TAG_COLORS.length]
+}
+
+// The wordmark's two tones. Slightly brighter than primary/secondary
+// because it is large text, which only needs 3:1 contrast.
+export const WORDMARK_BLUE = '#1F8FCF'
+export const WORDMARK_PINK = '#E2558C'
+
+// Soft background + readable foreground pairs, used for child avatars and
+// activity thumbnails. Each pair passes text contrast on its own
+// background, unlike the bright TAG_COLORS above, which are only safe as
+// borders and fills.
+const SOFT_PAIRS = [
+  { bg: '#FDE8F0', fg: '#B52A60' },
+  { bg: '#FFF3C4', fg: '#7A5A00' },
+  { bg: '#E4F2FB', fg: '#13527D' },
+  { bg: '#E3F5EC', fg: '#1E6B47' },
+  { bg: '#EFE7FF', fg: '#5B3BA8' },
+  { bg: '#FFE9DA', fg: '#8A3D0F' },
+]
+
+export function softColorFor(key) {
+  const text = String(key)
+  let hash = 0
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) >>> 0
+  }
+  return SOFT_PAIRS[hash % SOFT_PAIRS.length]
 }
