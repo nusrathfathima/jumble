@@ -29,7 +29,7 @@ export function AppShell({ settingsOpen, onOpenSettings, onCloseSettings }) {
 function ShellContent({ settingsOpen, onCloseSettings }) {
   const theme = useTheme()
   const isPhone = useMediaQuery(theme.breakpoints.down('sm'))
-  const { childList, tags, weather, reloadWeather, addChild, addChildOpen, closeAddChild } = useAppData()
+  const { tags, weather, reloadWeather, addChild, addChildOpen, closeAddChild } = useAppData()
 
   return (
     <>
@@ -64,8 +64,6 @@ function ShellContent({ settingsOpen, onCloseSettings }) {
       <SettingsDialog
         open={settingsOpen}
         onClose={onCloseSettings}
-        childList={childList}
-        tags={tags}
         locationSet={Boolean(weather?.locationSet)}
         onLocationChanged={reloadWeather}
       />

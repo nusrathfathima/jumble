@@ -6,6 +6,8 @@ import Stack from '@mui/material/Stack'
 import Alert from '@mui/material/Alert'
 import { saveLocation, clearLocation } from '../api/weather'
 import { ApiError } from '../api/client'
+import { LocationIcon } from './Icons'
+import { SettingsSection } from './SettingsSection'
 
 /**
  * "Use my location" for weather-aware suggestions, shown in Settings.
@@ -59,22 +61,40 @@ export function LocationSetting({ locationSet, onChanged }) {
     }
   }
 
+  const status = locationSet ? (
+    <Box
+      component="span"
+      sx={{ px: 1.25, py: 0.25, borderRadius: 999, bgcolor: '#E3F5EC', color: '#1E6B47', fontSize: 12, fontWeight: 800, flexShrink: 0 }}
+    >
+      On
+    </Box>
+  ) : null
+
   return (
-    <Box>
-      <Typography variant="subtitle2" fontWeight={700}>
-        Weather
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-        {locationSet
-          ? 'Location saved. Outdoor ideas are skipped on rainy days.'
-          : 'Share your location so outdoor ideas are skipped on rainy days.'}
-      </Typography>
-      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-        <Button variant={locationSet ? 'outlined' : 'contained'} size="small" disabled={busy} onClick={handleUseMyLocation}>
+    <SettingsSection title="Weather" aside={status}>
+      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mb: 2 }}>
+        <Box
+          sx={{ width: 40, height: 40, flexShrink: 0, borderRadius: '12px', bgcolor: 'primary.light', color: 'primary.dark', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <LocationIcon size={20} />
+        </Box>
+        <Typography sx={{ fontSize: 14, color: 'text.secondary', pt: 0.25 }}>
+          {locationSet
+            ? 'Your location is saved, rounded to about 1 km. Outdoor ideas are skipped on rainy days.'
+            : 'Share your location so outdoor ideas are skipped on rainy days. Only a rough location (about 1 km) is kept.'}
+        </Typography>
+      </Box>
+      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
+        <Button
+          variant={locationSet ? 'outlined' : 'contained'}
+          disabled={busy}
+          onClick={handleUseMyLocation}
+          sx={{ boxShadow: 'none' }}
+        >
           {busy ? 'Working…' : locationSet ? 'Update location' : 'Use my location'}
         </Button>
         {locationSet && (
-          <Button variant="text" size="small" color="inherit" disabled={busy} onClick={handleRemove}>
+          <Button variant="text" color="inherit" disabled={busy} onClick={handleRemove} sx={{ color: 'text.secondary' }}>
             Remove
           </Button>
         )}
@@ -84,6 +104,6 @@ export function LocationSetting({ locationSet, onChanged }) {
           {error}
         </Alert>
       )}
-    </Box>
+    </SettingsSection>
   )
 }

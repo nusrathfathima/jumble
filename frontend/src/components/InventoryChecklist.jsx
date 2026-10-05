@@ -1,37 +1,34 @@
 import { useEffect, useState } from 'react'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import FormGroup from '@mui/material/FormGroup'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import Checkbox from '@mui/material/Checkbox'
-import Button from '@mui/material/Button'
 import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
 import CircularProgress from '@mui/material/CircularProgress'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
 import { listMaterials } from '../api/materials'
 import { getInventory, updateInventory } from '../api/inventory'
 import { ApiError } from '../api/client'
-import { colorForTag } from '../theme'
+import { softColorFor } from '../theme'
+import { SettingsSection } from './SettingsSection'
 
 const CATEGORY_LABELS = {
   KITCHEN: 'Kitchen',
   CRAFT: 'Craft supplies',
-  RECYCLING: 'Recycling / odds and ends',
+  RECYCLING: 'Recycling and odds and ends',
   OUTDOOR: 'Outdoor',
   OTHER: 'Other',
 }
 
-// Keeps categories in a stable, sensible reading order rather than
-// whatever order the database happens to return them in.
+// A stable reading order rather than whatever order the database returns.
 const CATEGORY_ORDER = ['KITCHEN', 'CRAFT', 'RECYCLING', 'OUTDOOR', 'OTHER']
 
-// No outer Card here — this now only ever renders inside the Settings
-// dialog's "What you have on hand" tab, which already provides its own
-// bordered, tinted container, so an inner Card or per-item color wash
-// would just double up on color. Back to plain checkboxes — the chip
-// version made this tab feel like too much color at once — but each
-// checkbox still picks up its category's color when checked, so there's
-// a little visual variety without repainting the whole list.
+/**
+ * "What you have on hand": plain checkboxes, grouped by category. Each
+ * category's checkboxes take one colour from the same soft palette as
+ * the child avatars, so the list has a little colour without being loud.
+ */
 export function InventoryChecklist() {
   const [materials, setMaterials] = useState([])
   const [checkedIds, setCheckedIds] = useState(new Set())
@@ -46,7 +43,7 @@ export function InventoryChecklist() {
         setMaterials(materialsData)
         setCheckedIds(new Set(inventoryIds))
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Could not load your inventory.'))
+      .catch((err) => setError(err instanceof ApiError ? err.message : 'Could not load your supplies.'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -70,18 +67,10 @@ export function InventoryChecklist() {
       await updateInventory(Array.from(checkedIds))
       setJustSaved(true)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not save your inventory.')
+      setError(err instanceof ApiError ? err.message : 'Could not save your supplies.')
     } finally {
       setSaving(false)
     }
-  }
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-        <CircularProgress size={28} />
-      </Box>
-    )
   }
 
   const byCategory = CATEGORY_ORDER.map((category) => ({
@@ -89,10 +78,19 @@ export function InventoryChecklist() {
     items: materials.filter((m) => m.category === category),
   })).filter((group) => group.items.length > 0)
 
+  const count = (
+    <Box
+      component="span"
+      sx={{ px: 1.25, py: 0.25, borderRadius: 999, bgcolor: 'primary.light', color: 'primary.dark', fontSize: 12, fontWeight: 800, flexShrink: 0 }}
+    >
+      {checkedIds.size} selected
+    </Box>
+  )
+
   return (
-    <Box sx={{ textAlign: 'left' }}>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Check off what you have — suggestions will only include activities you can actually do with it.
+    <SettingsSection title="What you have on hand" aside={loading ? null : count}>
+      <Typography sx={{ fontSize: 14, color: 'text.secondary', mb: 2 }}>
+        Tick what you have at home. Ideas will only use things you actually have.
       </Typography>
 
       {error && (
@@ -101,53 +99,49 @@ export function InventoryChecklist() {
         </Alert>
       )}
 
-      <Stack spacing={2.5}>
-        {byCategory.map(({ category, items }) => {
-          const categoryColor = colorForTag(category)
-          return (
-            <Box key={category}>
-              <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.08em', fontWeight: 700 }}>
-                {CATEGORY_LABELS[category] || category}
-              </Typography>
-              <FormGroup
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                }}
-              >
-                {items.map((material) => (
-                  <FormControlLabel
-                    key={material.id}
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={checkedIds.has(material.id)}
-                        onChange={() => toggle(material.id)}
-                        sx={{
-                          color: `${categoryColor}88`,
-                          '&.Mui-checked': { color: categoryColor },
-                        }}
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+          <CircularProgress size={26} />
+        </Box>
+      ) : (
+        <>
+          <Stack spacing={2}>
+            {byCategory.map(({ category, items }) => {
+              const { fg } = softColorFor(category)
+              return (
+                <Box key={category}>
+                  <Typography component="h4" sx={{ fontSize: 13, fontWeight: 800, color: 'text.secondary', mb: 0.25 }}>
+                    {CATEGORY_LABELS[category] || category}
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
+                    {items.map((material) => (
+                      <FormControlLabel
+                        key={material.id}
+                        sx={{ mr: 0, '& .MuiFormControlLabel-label': { fontSize: 15 } }}
+                        control={
+                          <Checkbox
+                            checked={checkedIds.has(material.id)}
+                            onChange={() => toggle(material.id)}
+                            sx={{ color: '#A9BCCB', '&.Mui-checked': { color: fg } }}
+                          />
+                        }
+                        label={material.displayName}
                       />
-                    }
-                    label={material.displayName}
-                  />
-                ))}
-              </FormGroup>
-            </Box>
-          )
-        })}
-      </Stack>
+                    ))}
+                  </Box>
+                </Box>
+              )
+            })}
+          </Stack>
 
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 3 }}>
-        <Button variant="contained" onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving…' : 'Save inventory'}
-        </Button>
-        {justSaved && (
-          <Typography variant="body2" color="secondary.main" fontWeight={600}>
-            Saved.
-          </Typography>
-        )}
-      </Stack>
-    </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2.5 }}>
+            <Button variant="contained" onClick={handleSave} disabled={saving} sx={{ boxShadow: 'none' }}>
+              {saving ? 'Saving…' : 'Save supplies'}
+            </Button>
+            {justSaved && <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'success.dark' }}>Saved.</Typography>}
+          </Box>
+        </>
+      )}
+    </SettingsSection>
   )
 }
