@@ -7,9 +7,10 @@ import Card from '@mui/material/Card'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
-import Slider from '@mui/material/Slider'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
 import { getSuggestions } from '../api/suggestions'
 import { recordCompletion } from '../api/completions'
 import { getActivity } from '../api/activities'
@@ -26,8 +27,10 @@ import { LOCATION_LABELS, MESS_LABELS, formatMinutes } from '../components/activ
 import {
   ActivityIcon,
   BackIcon,
+  CheckIcon,
   DiceIcon,
   DropIcon,
+  LockIcon,
   EitherIcon,
   HouseIcon,
   SplatIcon,
@@ -35,7 +38,7 @@ import {
   TreeIcon,
 } from '../components/Icons'
 
-const TIME_MARKS = [
+const TIME_OPTIONS = [
   { value: 15, label: '15m' },
   { value: 30, label: '30m' },
   { value: 45, label: '45m' },
@@ -43,6 +46,10 @@ const TIME_MARKS = [
   { value: 90, label: '1.5h' },
   { value: 120, label: '2h' },
 ]
+
+// The four steps, in order. Each one stays blurred and locked until the
+// one before it has an answer.
+const STEP_HINTS = ['', 'Pick who’s playing first', 'Pick how much time first', 'Pick where first']
 
 const WHERE_OPTIONS = [
   { value: 'INDOOR', label: 'Inside', Icon: HouseIcon, tone: PEACH },
@@ -75,18 +82,6 @@ const PRESSABLE = {
   '&.Mui-disabled': { boxShadow: 'none' },
 }
 
-function SectionLabel({ children, htmlFor }) {
-  return (
-    <Typography
-      component={htmlFor ? 'label' : 'h2'}
-      htmlFor={htmlFor}
-      sx={{ m: 0, fontFamily: HEADING_FONT, fontSize: 17, fontWeight: 800, color: 'text.primary' }}
-    >
-      {children}
-    </Typography>
-  )
-}
-
 /**
  * The Today tab: the "what should we do?" form, and once you press
  * "Jumble it!", the ideas for that child — one top pick plus a short list
@@ -95,11 +90,15 @@ function SectionLabel({ children, htmlFor }) {
  */
 export function TodayPage() {
   const { parent } = useAuth()
-  const { childList, loading, weather, selectedChild, setSelectedChildId, openAddChild, openSettings } = useAppData()
+  const { childList, loading, weather, setSelectedChildId, openAddChild, openSettings } = useAppData()
 
-  const [availableMinutes, setAvailableMinutes] = useState(30)
-  const [maxMessLevel, setMaxMessLevel] = useState(3)
-  const [locationType, setLocationType] = useState('EITHER')
+  // Nothing is preselected: every step starts empty, and each one
+  // unlocks once the step before it has an answer.
+  const [childId, setChildId] = useState(null)
+  const [availableMinutes, setAvailableMinutes] = useState(null)
+  const [locationType, setLocationType] = useState(null)
+  const [maxMessLevel, setMaxMessLevel] = useState(null)
+  const chosenChild = childList.find((c) => c.id === childId) ?? null
 
   const [results, setResults] = useState(null)
   const [searching, setSearching] = useState(false)
@@ -109,10 +108,49 @@ export function TodayPage() {
   const [ratingStatus, setRatingStatus] = useState({})
   const [openActivityId, setOpenActivityId] = useState(null)
 
+  // Laptops and wider get the "board game" layout: four numbered step
+  // cards in a row. Smaller screens keep the stacked form.
+  const theme = useTheme()
+  const isWide = useMediaQuery(theme.breakpoints.up('lg'))
+
   const firstName = (parent?.displayName || '').trim().split(' ')[0]
 
+  const done = [childId != null, availableMinutes != null, locationType != null, maxMessLevel != null]
+  const unlocked = [true, done[0], done[0] && done[1], done[0] && done[1] && done[2]]
+  const nextStep = done.indexOf(false)
+  const allDone = nextStep === -1
+
+  // On narrower screens the steps are stacked, so after each answer the
+  // next step is scrolled into view.
+  function revealStep(n) {
+    if (isWide) return
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.setTimeout(() => {
+      document.getElementById(`today-step-${n}`)?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })
+    }, 150)
+  }
+
+  function pickChild(id) {
+    setChildId(id)
+    // Keeps History on the same child.
+    setSelectedChildId(id)
+    revealStep(2)
+  }
+
+  function pickTime(value) {
+    setAvailableMinutes(value)
+    revealStep(3)
+  }
+
+  function pickWhere(value) {
+    setLocationType(value)
+    revealStep(4)
+  }
+
+  const selectedChild = chosenChild
+
   async function handleSearch() {
-    if (!selectedChild) return
+    if (!selectedChild || !allDone) return
     setError(null)
     setSearching(true)
     setRatingStatus({})
@@ -185,13 +223,13 @@ export function TodayPage() {
   if (results) {
     const [top, ...others] = results.suggestions
     return (
-      <Stack spacing={2}>
+      <Stack spacing={2} sx={{ maxWidth: 900, mx: 'auto' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
             <IconButton onClick={() => setResults(null)} aria-label="Back to the form" sx={{ ml: -1, color: 'text.primary' }}>
               <BackIcon size={22} strokeWidth={2.5} />
             </IconButton>
-            <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: { xs: 22, sm: 26 }, fontWeight: 800, lineHeight: 1.15 }}>
+            <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: { xs: 22, sm: 26, lg: 34 }, fontWeight: 800, lineHeight: 1.15 }}>
               Ideas for {results.childName}
             </Typography>
           </Box>
@@ -223,11 +261,11 @@ export function TodayPage() {
                 <Typography component="h2" sx={{ fontFamily: HEADING_FONT, fontSize: 17, fontWeight: 800, mb: 1 }}>
                   Or try one of these
                 </Typography>
-                <Stack spacing={1}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 1.5 }}>
                   {others.map((s) => (
                     <AlternativeRow key={s.activityId} suggestion={s} onClick={() => promote(s.activityId)} />
                   ))}
-                </Stack>
+                </Box>
               </Box>
             )}
           </>
@@ -247,8 +285,127 @@ export function TodayPage() {
     )
   }
 
+  const steps = [
+    {
+      title: 'Who’s playing?',
+      tone: PEACH,
+      body: (
+        <ChildPicker
+          childList={childList}
+          selectedId={childId}
+          onSelect={pickChild}
+          onAdd={openAddChild}
+          center={isWide}
+        />
+      ),
+    },
+    {
+      title: 'How much time?',
+      tone: BUTTER,
+      body: <TimeChoices value={availableMinutes} onChange={pickTime} columns={isWide ? 2 : 3} />,
+    },
+    {
+      title: 'Where?',
+      tone: SKY,
+      body: (
+        <ChoiceTiles
+          label="Where"
+          options={WHERE_OPTIONS}
+          value={locationType}
+          onChange={pickWhere}
+          variant={isWide ? 'list' : 'tiles'}
+        />
+      ),
+    },
+    {
+      title: 'How messy?',
+      tone: MINT,
+      body: (
+        <ChoiceTiles
+          label="How messy"
+          options={MESS_OPTIONS}
+          value={maxMessLevel}
+          onChange={setMaxMessLevel}
+          variant={isWide ? 'list' : 'tiles'}
+        />
+      ),
+    },
+  ].map((step, i) => (
+    <Step
+      key={step.title}
+      id={`today-step-${i + 1}`}
+      n={i + 1}
+      title={step.title}
+      tone={step.tone}
+      wide={isWide}
+      locked={!unlocked[i]}
+      active={i === nextStep}
+      done={done[i]}
+      hint={STEP_HINTS[i]}
+    >
+      {step.body}
+    </Step>
+  ))
+
+  const jumbleButton = (
+    <Button
+      fullWidth={!isWide}
+      variant="contained"
+      size="large"
+      onClick={handleSearch}
+      disabled={searching || !allDone}
+      startIcon={searching ? null : <DiceIcon size={isWide ? 26 : 24} strokeWidth={2.2} />}
+      sx={isWide ? { ...PRESSABLE, width: 440, height: 64, fontSize: 24, mt: 1 } : { ...PRESSABLE, height: 56, fontSize: 21, mt: 1, mb: 0.75 }}
+    >
+      {searching ? 'Finding ideas…' : 'Jumble it!'}
+    </Button>
+  )
+
+  const notReadyHint = !allDone && (
+    <Typography sx={{ textAlign: 'center', fontSize: 14, fontWeight: 700, color: 'text.secondary' }}>
+      Answer all four steps to jumble up some ideas.
+    </Typography>
+  )
+
+  if (isWide) {
+    return (
+      <Stack spacing={3} sx={{ alignItems: 'center', pt: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography sx={{ fontSize: 16, fontWeight: 700, color: 'text.secondary' }}>
+              {greeting()}
+              {firstName ? `, ${firstName}` : ''}
+            </Typography>
+            <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: 44, fontWeight: 800, lineHeight: 1.1 }}>
+              What should we do today?
+            </Typography>
+          </Box>
+          <Sprout size={84} waving />
+        </Box>
+
+        <Box sx={{ width: 640 }}>
+          <WeatherPill weather={weather} onSetLocation={openSettings} />
+        </Box>
+
+        <Box sx={{ position: 'relative', width: '100%', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 2.5, pt: 3 }}>
+          {/* The dotted "board game" path joining the four steps. */}
+          <Box
+            aria-hidden="true"
+            sx={{ position: 'absolute', top: 24, left: '12%', right: '12%', borderTop: '3px dotted #B9CDBF' }}
+          />
+          {steps}
+        </Box>
+
+        {error && <Alert severity="error" sx={{ width: 640 }}>{error}</Alert>}
+
+        {jumbleButton}
+        {notReadyHint}
+      </Stack>
+    )
+  }
+
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2.5}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 1 }}>
         <Box sx={{ flex: 1 }}>
           <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'text.secondary' }}>
@@ -264,67 +421,177 @@ export function TodayPage() {
 
       <WeatherPill weather={weather} onSetLocation={openSettings} />
 
-      <Stack spacing={1.25}>
-        <SectionLabel>Who&rsquo;s playing?</SectionLabel>
-        <ChildPicker
-          childList={childList}
-          selectedId={selectedChild?.id}
-          onSelect={setSelectedChildId}
-          onAdd={openAddChild}
-        />
-      </Stack>
-
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <SectionLabel htmlFor="available-minutes">How much time?</SectionLabel>
-          <Typography component="span" sx={{ px: 1.25, py: 0.25, borderRadius: 999, bgcolor: BUTTER.bg, color: BUTTER.fg, fontSize: 14, fontWeight: 800 }}>
-            {formatMinutes(availableMinutes)}
-          </Typography>
-        </Box>
-        <Box sx={{ px: 1 }}>
-          <Slider
-            slotProps={{ input: { id: 'available-minutes' } }}
-            value={availableMinutes}
-            onChange={(e, value) => setAvailableMinutes(value)}
-            min={15}
-            max={120}
-            step={5}
-            marks={TIME_MARKS}
-            valueLabelDisplay="auto"
-            valueLabelFormat={(v) => `${v}m`}
-            sx={{ '& .MuiSlider-markLabel': { fontSize: 11, fontWeight: 700, color: 'text.secondary' } }}
-          />
-        </Box>
-      </Box>
-
-      <Stack spacing={1.25}>
-        <SectionLabel>Where?</SectionLabel>
-        <ChoiceTiles label="Where" options={WHERE_OPTIONS} value={locationType} onChange={setLocationType} />
-      </Stack>
-
-      <Stack spacing={1.25}>
-        <SectionLabel>How messy?</SectionLabel>
-        <ChoiceTiles label="How messy" options={MESS_OPTIONS} value={maxMessLevel} onChange={setMaxMessLevel} />
-      </Stack>
+      {steps}
 
       {error && <Alert severity="error">{error}</Alert>}
 
-      {/* On phones the button sticks just above the tab bar, so it's always
-          one tap away without scrolling to the bottom of the form. */}
-      <Box sx={{ position: { xs: 'sticky', sm: 'static' }, bottom: { xs: 80 }, zIndex: 2 }}>
-      <Button
-        fullWidth
-        variant="contained"
-        size="large"
-        onClick={handleSearch}
-        disabled={searching || !selectedChild}
-        startIcon={searching ? null : <DiceIcon size={24} strokeWidth={2.2} />}
-        sx={{ ...PRESSABLE, height: 56, fontSize: 21, mt: 1, mb: 0.75 }}
-      >
-        {searching ? 'Finding ideas…' : 'Jumble it!'}
-      </Button>
+      {/* Once all four steps are answered, the button sticks just above
+          the phone tab bar, so it's one tap away without scrolling. Before
+          that it stays in place, so it never covers a step. */}
+      <Box sx={{ position: { xs: allDone ? 'sticky' : 'static', sm: 'static' }, bottom: { xs: 80 }, zIndex: 2 }}>
+        {jumbleButton}
       </Box>
+      {notReadyHint}
     </Stack>
+  )
+}
+
+/** Six big time buttons. Nothing is picked until you tap one. */
+function TimeChoices({ value, onChange, columns }) {
+  return (
+    <Box role="radiogroup" aria-label="How much time" sx={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: 1 }}>
+      {TIME_OPTIONS.map((option) => {
+        const selected = option.value === value
+        return (
+          <ButtonBase
+            key={option.value}
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(option.value)}
+            sx={{
+              height: 48,
+              borderRadius: 999,
+              boxSizing: 'border-box',
+              fontFamily: HEADING_FONT,
+              fontSize: 17,
+              fontWeight: 800,
+              bgcolor: selected ? 'primary.main' : 'background.paper',
+              color: selected ? '#FFFFFF' : BUTTER.fg,
+              border: '1.5px solid',
+              borderColor: selected ? 'primary.main' : '#E8D9A0',
+              boxShadow: selected ? `0 3px 0 ${GREEN_DARK}` : 'none',
+              transition: 'background-color 150ms ease, color 150ms ease',
+              '&:hover': { borderColor: 'primary.main' },
+              '&:active': { transform: 'scale(0.97)' },
+              '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+            }}
+          >
+            {option.label}
+          </ButtonBase>
+        )
+      })}
+    </Box>
+  )
+}
+
+/**
+ * One numbered step. Locked steps are softly blurred, can't be clicked or
+ * tabbed into, and show a small lock with a hint saying what to do first.
+ * The step waiting for an answer glows green; answered steps get a tick
+ * in their number badge.
+ */
+function Step({ id, n, title, tone, wide, locked, active, done, hint, children }) {
+  const badge = (
+    <Box
+      aria-hidden="true"
+      sx={{
+        width: wide ? 44 : 32,
+        height: wide ? 44 : 32,
+        flexShrink: 0,
+        borderRadius: '50%',
+        bgcolor: done ? 'primary.main' : tone.bg,
+        color: done ? '#FFFFFF' : tone.fg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: HEADING_FONT,
+        fontSize: wide ? 22 : 17,
+        fontWeight: 800,
+        transition: 'background-color 200ms ease',
+        ...(wide ? { position: 'absolute', top: -22, left: '50%', ml: '-22px', boxShadow: '0 0 0 5px #F3F8F4' } : {}),
+      }}
+    >
+      {done ? <CheckIcon size={wide ? 22 : 17} strokeWidth={3.2} /> : n}
+    </Box>
+  )
+
+  const content = (
+    <Box
+      inert={locked}
+      sx={{
+        transition: 'filter 300ms ease, opacity 300ms ease',
+        ...(locked ? { filter: 'blur(3px)', opacity: 0.45, pointerEvents: 'none', userSelect: 'none' } : {}),
+      }}
+    >
+      {children}
+    </Box>
+  )
+
+  const lockNote = locked && (
+    <Box
+      sx={{
+        position: 'absolute',
+        left: '50%',
+        top: wide ? '58%' : '62%',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.75,
+        px: 1.5,
+        py: 0.75,
+        borderRadius: 999,
+        bgcolor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
+        boxShadow: '0 4px 12px rgba(22, 48, 31, 0.10)',
+        color: 'text.secondary',
+        fontSize: 13,
+        fontWeight: 800,
+        whiteSpace: 'nowrap',
+        zIndex: 1,
+      }}
+    >
+      <LockIcon size={15} strokeWidth={2.4} />
+      {hint}
+    </Box>
+  )
+
+  const glow = active
+    ? { borderColor: 'primary.main', boxShadow: '0 0 0 4px rgba(47, 125, 79, 0.15), 0 10px 24px rgba(47, 125, 79, 0.12)' }
+    : {}
+
+  if (wide) {
+    return (
+      <Card
+        id={id}
+        component="section"
+        aria-label={`Step ${n}: ${title}`}
+        sx={{ position: 'relative', overflow: 'visible', display: 'flex', flexDirection: 'column', gap: 1.5, px: 2.25, pt: 4, pb: 2.5, transition: 'box-shadow 300ms ease, border-color 300ms ease', ...glow }}
+      >
+        {badge}
+        <Typography component="h2" sx={{ m: 0, textAlign: 'center', fontFamily: HEADING_FONT, fontSize: 20, fontWeight: 800, opacity: locked ? 0.6 : 1 }}>
+          {title}
+        </Typography>
+        {content}
+        {lockNote}
+      </Card>
+    )
+  }
+
+  return (
+    <Box
+      id={id}
+      component="section"
+      aria-label={`Step ${n}: ${title}`}
+      sx={{
+        position: 'relative',
+        p: 2,
+        borderRadius: '22px',
+        border: '1.5px solid',
+        borderColor: 'transparent',
+        transition: 'box-shadow 300ms ease, border-color 300ms ease, background-color 300ms ease',
+        ...(active ? { bgcolor: 'rgba(255, 255, 255, 0.7)', ...glow } : {}),
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.25, opacity: locked ? 0.6 : 1 }}>
+        {badge}
+        <Typography component="h2" sx={{ m: 0, fontFamily: HEADING_FONT, fontSize: 18, fontWeight: 800 }}>
+          {title}
+        </Typography>
+      </Box>
+      {content}
+      {lockNote}
+    </Box>
   )
 }
 
@@ -350,7 +617,7 @@ function TopPickCard({ suggestion, rated, onStart }) {
 
   return (
     <Card component="article" sx={{ overflow: 'hidden' }}>
-      <Box sx={{ position: 'relative', height: { xs: 138, sm: 168 }, display: 'flex', alignItems: 'center', justifyContent: 'center', color: GREEN_DARK }}>
+      <Box sx={{ position: 'relative', height: { xs: 138, sm: 168, lg: 250 }, display: 'flex', alignItems: 'center', justifyContent: 'center', color: GREEN_DARK }}>
         <TopPickScene />
         <Box sx={{ position: 'relative', transform: 'translate(36px, -14px) rotate(-8deg)' }}>
           <ActivityIcon activityId={suggestion.activityId} size={58} strokeWidth={1.7} />

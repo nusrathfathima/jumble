@@ -153,6 +153,13 @@ export const CheckIcon = (p) => (
   </Icon>
 )
 
+export const LockIcon = (p) => (
+  <Icon {...p}>
+    <rect x="5" y="11" width="14" height="10" rx="2.5" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+  </Icon>
+)
+
 export const LocationIcon = (p) => (
   <Icon {...p}>
     <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" />

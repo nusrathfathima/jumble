@@ -36,11 +36,11 @@ function ShellContent({ settingsOpen, onCloseSettings }) {
       {!isPhone && <BottomNav />}
 
       <Container
-        maxWidth="sm"
+        maxWidth={false}
         component="main"
-        // On phones the tab bar is fixed to the bottom, so leave room
-        // for it under the last thing on the page.
-        sx={{ pt: { xs: 2.5, sm: 3 }, pb: { xs: 12, sm: 6 } }}
+        // Wider on bigger screens so laptops use the space; on phones the
+        // tab bar is fixed to the bottom, so leave room for it at the end.
+        sx={{ maxWidth: { xs: 600, md: 760, lg: 1100 }, pt: { xs: 1.5, sm: 3 }, pb: { xs: 12, sm: 6 } }}
       >
         <Outlet />
       </Container>

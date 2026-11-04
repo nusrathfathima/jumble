@@ -1,33 +1,36 @@
 import { useState } from 'react'
-import AppBar from '@mui/material/AppBar'
-import Toolbar from '@mui/material/Toolbar'
 import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import ButtonBase from '@mui/material/ButtonBase'
 import Menu from '@mui/material/Menu'
+import Typography from '@mui/material/Typography'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { HEADING_FONT, WORDMARK_GREEN, WORDMARK_PEACH } from '../theme'
-import { Bunting } from './Garden'
+import { GREEN, HEADING_FONT } from '../theme'
+import { Bunting, Cloud, GardenHills, SunFace } from './Garden'
 import { ChevronDownIcon, SettingsIcon } from './Icons'
 
+const PILL = {
+  height: 40,
+  px: 1.75,
+  gap: 0.75,
+  borderRadius: 999,
+  bgcolor: 'rgba(255, 255, 255, 0.18)',
+  color: '#FFFFFF',
+  fontSize: 14,
+  fontWeight: 800,
+  transition: 'background-color 150ms ease',
+  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.28)' },
+  '&.Mui-focusVisible': { outline: '3px solid #FFFFFF', outlineOffset: 2 },
+}
+
 /**
- * Shown on every screen — login, signup, and the logged-in home page —
- * so "Jumble" always reads as one consistent app rather than a login
- * form that happens to lead somewhere else. The wordmark is two-toned
- * (brand blue + brand pink) rather than a single flat color, which
- * reads as more of a deliberate logo than plain page text. No icon next
- * to it — that was tried and didn't land, back to text only.
- *
- * One three-column CSS grid — left, centered wordmark, right — every
- * screen size, so nothing here ever needs a second row or absolute
- * positioning to line up. Signed in: clicking the name on the left opens
- * a small popover with a "Log out" button in it (the same button style
- * Settings uses for its own Log out), rather than a full-size button
- * sitting in the header at all times. Settings itself stays on the
- * right. Signed out: the login page offers a shortcut to sign up and
- * vice versa, on the right.
+ * The green garden banner at the top of every screen: bunting, a smiling
+ * sun, clouds and rolling hills that flow down into the page. "Jumble"
+ * sits in the middle. Signed in, your name sits on the right and opens
+ * a small menu with Settings and Log out; signed out, a Log in / Sign up
+ * shortcut sits there instead. The Today / Kids / History tabs are not
+ * part of the banner; they sit just below it (see BottomNav).
  */
 export function TopBar({ onOpenSettings }) {
   const { parent, isAuthenticated, logout } = useAuth()
@@ -39,101 +42,104 @@ export function TopBar({ onOpenSettings }) {
     logout()
   }
 
+  function handleSettings() {
+    setAccountAnchor(null)
+    onOpenSettings()
+  }
+
+  const name = parent?.displayName || parent?.email
+
   return (
-    <AppBar position="sticky" color="default" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider', overflow: 'visible' }}>
-      <Toolbar
+    <Box
+      component="header"
+      sx={{ position: 'relative', height: { xs: 132, md: 172 }, bgcolor: GREEN, overflow: 'hidden' }}
+    >
+      {/* Decoration only: bunting, sun, clouds, hills. */}
+      <Box aria-hidden="true" sx={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        <Bunting stringColor="rgba(255, 255, 255, 0.7)" />
+        <Box sx={{ position: 'absolute', left: { xs: 14, md: 56 }, top: { xs: 30, md: 50 }, display: { xs: 'none', sm: 'block' } }}>
+          <SunFace size={34} />
+        </Box>
+        <Box sx={{ position: 'absolute', left: '14%', top: 34, opacity: 0.16, display: { xs: 'none', md: 'block' } }}>
+          <Cloud width={64} />
+        </Box>
+        <Box sx={{ position: 'absolute', left: '68%', top: 28, opacity: 0.14, display: { xs: 'none', md: 'block' } }}>
+          <Cloud width={50} />
+        </Box>
+        <GardenHills />
+      </Box>
+
+      <Box
         sx={{
+          position: 'relative',
+          height: { xs: 96, md: 132 },
           display: 'grid',
           gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center',
-          columnGap: 1,
-          minHeight: { xs: 56, sm: 64 },
+          px: { xs: 1.5, md: 6 },
+          pt: { xs: 1.5, md: 1 },
         }}
       >
-        <Box sx={{ justifySelf: 'start', minWidth: 0 }}>
-          {isAuthenticated && (
-            <>
-              <ButtonBase
-                onClick={(e) => setAccountAnchor(e.currentTarget)}
-                sx={{
-                  borderRadius: 2,
-                  px: 1,
-                  py: 0.5,
-                  ml: -1,
-                  maxWidth: { xs: 140, sm: 220 },
-                  '&:hover': { bgcolor: 'action.hover' },
-                }}
-              >
-                <Typography variant="body2" color="text.secondary" noWrap sx={{ fontWeight: 700 }}>
-                  {parent?.displayName || parent?.email}
-                </Typography>
-                <Box component="span" sx={{ display: 'flex', color: 'text.secondary', ml: 0.5, flexShrink: 0 }}>
-                  <ChevronDownIcon size={14} strokeWidth={2.5} />
-                </Box>
-              </ButtonBase>
-
-              <Menu
-                anchorEl={accountAnchor}
-                open={Boolean(accountAnchor)}
-                onClose={() => setAccountAnchor(null)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-              >
-                <Box sx={{ px: 2, py: 1.5, minWidth: 200 }}>
-                  <Typography variant="body2" color="text.secondary" noWrap sx={{ mb: 1.5 }}>
-                    Signed in as {parent?.displayName || parent?.email}
-                  </Typography>
-                  <Button fullWidth variant="outlined" color="error" size="small" onClick={handleLogout}>
-                    Log out
-                  </Button>
-                </Box>
-              </Menu>
-            </>
-          )}
-        </Box>
+        <Box />
 
         <Typography
-          variant="h4"
           component="div"
-          sx={{ fontFamily: HEADING_FONT, fontSize: { xs: 30, sm: 34 }, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, userSelect: 'none', justifySelf: 'center' }}
+          sx={{
+            fontFamily: HEADING_FONT,
+            fontSize: { xs: 36, md: 56 },
+            fontWeight: 800,
+            lineHeight: 1,
+            userSelect: 'none',
+            color: '#FFFFFF',
+            textShadow: '0 2px 0 rgba(22, 48, 31, 0.18)',
+          }}
         >
-          <Box component="span" sx={{ color: WORDMARK_GREEN }}>
-            Jum
-          </Box>
-          <Box component="span" sx={{ color: WORDMARK_PEACH }}>
+          Jum
+          <Box component="span" sx={{ color: '#FFD66B' }}>
             ble
           </Box>
         </Typography>
 
-        <Box sx={{ justifySelf: 'end' }}>
+        <Box sx={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 1.25 }}>
           {isAuthenticated ? (
-            <Button
-              variant="text"
-              size="small"
-              onClick={onOpenSettings}
-              aria-label="Settings"
-              sx={{ color: 'text.secondary', minWidth: 44, minHeight: 44, px: { xs: 1, sm: 1.5 } }}
+            <ButtonBase
+              onClick={(e) => setAccountAnchor(e.currentTarget)}
+              aria-haspopup="menu"
+              aria-expanded={Boolean(accountAnchor)}
+              sx={{ ...PILL, maxWidth: { xs: 112, md: 220 } }}
             >
-              <SettingsIcon size={22} />
-              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 0.75 }}>
-                Settings
-              </Box>
-            </Button>
+              <Typography component="span" noWrap sx={{ fontSize: 14, fontWeight: 800 }}>
+                {name}
+              </Typography>
+              <ChevronDownIcon size={14} strokeWidth={2.5} />
+            </ButtonBase>
           ) : (
-            <Button
-              component={RouterLink}
-              to={location.pathname === '/signup' ? '/login' : '/signup'}
-              variant="outlined"
-              size="small"
-            >
+            <ButtonBase component={RouterLink} to={location.pathname === '/signup' ? '/login' : '/signup'} sx={PILL}>
               {location.pathname === '/signup' ? 'Log in' : 'Sign up'}
-            </Button>
+            </ButtonBase>
           )}
         </Box>
-      </Toolbar>
-      {/* Party bunting hanging just below the header, over the page. */}
-      <Box sx={{ position: 'absolute', left: 0, right: 0, top: '100%', pointerEvents: 'none' }}>
-        <Bunting />
       </Box>
-    </AppBar>
+
+      <Menu
+        anchorEl={accountAnchor}
+        open={Boolean(accountAnchor)}
+        onClose={() => setAccountAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Box sx={{ px: 2, py: 1.5, minWidth: 220, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Typography variant="body2" color="text.secondary" noWrap sx={{ mb: 0.5 }}>
+            Signed in as {name}
+          </Typography>
+          <Button fullWidth variant="outlined" size="small" startIcon={<SettingsIcon size={17} strokeWidth={2.2} />} onClick={handleSettings}>
+            Settings
+          </Button>
+          <Button fullWidth variant="outlined" color="error" size="small" onClick={handleLogout}>
+            Log out
+          </Button>
+        </Box>
+      </Menu>
+    </Box>
   )
 }

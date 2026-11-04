@@ -41,12 +41,20 @@ export function ChildAvatar({ child, size = 56, selected = false }) {
  * "Who's playing?" — each child as a tappable avatar instead of a
  * dropdown. Scrolls sideways if a family has more children than fit.
  */
-export function ChildPicker({ childList, selectedId, onSelect, onAdd }) {
+export function ChildPicker({ childList, selectedId, onSelect, onAdd, center = false, size = 56 }) {
   return (
     <Box
       role="radiogroup"
       aria-label="Who's playing"
-      sx={{ display: 'flex', gap: 2, overflowX: 'auto', pt: 1.5, pb: 0.5, mx: -0.5, px: 0.5 }}
+      sx={{
+        display: 'flex',
+        gap: center ? 1.5 : 2,
+        pt: 1.5,
+        pb: 0.5,
+        mx: -0.5,
+        px: 0.5,
+        ...(center ? { justifyContent: 'center', flexWrap: 'wrap' } : { overflowX: 'auto' }),
+      }}
     >
       {childList.map((child) => {
         const selected = child.id === selectedId
@@ -64,7 +72,7 @@ export function ChildPicker({ childList, selectedId, onSelect, onAdd }) {
               '&:hover > span:first-of-type': { transform: 'scale(1.05)' },
             }}
           >
-            <ChildAvatar child={child} selected={selected} />
+            <ChildAvatar child={child} selected={selected} size={size} />
             <Typography
               component="span"
               variant="body2"
@@ -86,8 +94,8 @@ export function ChildPicker({ childList, selectedId, onSelect, onAdd }) {
           <Box
             component="span"
             sx={{
-              width: 56,
-              height: 56,
+              width: size,
+              height: size,
               boxSizing: 'border-box',
               borderRadius: '50%',
               border: '2px dashed',

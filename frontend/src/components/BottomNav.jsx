@@ -34,13 +34,24 @@ export function BottomNav() {
         sx={{
           flexDirection: isPhone ? 'column' : 'row',
           gap: isPhone ? 0.375 : 1,
-          px: isPhone ? 0 : 2.25,
-          py: isPhone ? 0 : 1,
-          height: isPhone ? '100%' : 'auto',
+          px: isPhone ? 0 : 2.5,
+          height: isPhone ? '100%' : 44,
           borderRadius: isPhone ? 0 : 999,
-          color: active ? 'primary.main' : 'text.secondary',
-          bgcolor: !isPhone && active ? 'primary.light' : 'transparent',
-          '&:hover': { color: 'primary.main' },
+          ...(isPhone
+            ? {
+                color: active ? 'primary.main' : 'text.secondary',
+                '&:hover': { color: 'primary.main' },
+              }
+            : {
+                // Below the banner on wider screens: filled green when
+                // active, white pills otherwise.
+                color: active ? '#FFFFFF' : 'primary.dark',
+                bgcolor: active ? 'primary.main' : 'background.paper',
+                border: '1.5px solid',
+                borderColor: active ? 'primary.main' : '#CFE0D4',
+                boxShadow: active ? '0 3px 0 #1F5C38' : 'none',
+                '&:hover': { borderColor: 'primary.main' },
+              }),
         }}
       >
         <Box
@@ -55,7 +66,7 @@ export function BottomNav() {
         >
           <Icon size={22} />
         </Box>
-        <Typography component="span" sx={{ fontSize: isPhone ? 12 : 14, fontWeight: active ? 800 : 700 }}>
+        <Typography component="span" sx={{ fontSize: isPhone ? 12 : 15, fontWeight: 800 }}>
           {label}
         </Typography>
       </ButtonBase>
@@ -89,7 +100,7 @@ export function BottomNav() {
   }
 
   return (
-    <Box component="nav" aria-label="Main" sx={{ display: 'flex', justifyContent: 'center', gap: 1, pt: 2 }}>
+    <Box component="nav" aria-label="Main" sx={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center', gap: 1.25, pt: 1 }}>
       {tabs}
     </Box>
   )

@@ -44,7 +44,7 @@ export function KidsPage() {
         </Card>
       )}
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(3, minmax(0, 1fr))' }, gap: { xs: 1.5, lg: 2.5 } }}>
         {childList.map((child) => (
           <Card key={child.id}>
             <Box sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'flex-start' }}>

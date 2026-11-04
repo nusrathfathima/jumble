@@ -63,7 +63,7 @@ export function HistoryPage() {
   const error = current?.error ?? null
 
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={2.5} sx={{ maxWidth: 900, mx: 'auto' }}>
       <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: 30, fontWeight: 800 }}>
         History
       </Typography>
