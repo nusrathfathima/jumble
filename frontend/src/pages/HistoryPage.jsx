@@ -9,9 +9,10 @@ import { getStats } from '../api/stats'
 import { listCompletions } from '../api/completions'
 import { ApiError } from '../api/client'
 import { useAppData } from '../context/AppDataContext'
-import { softColorFor } from '../theme'
+import { softColorFor, HEADING_FONT } from '../theme'
 import { ChildPicker } from '../components/ChildPicker'
 import { ActivityIcon } from '../components/Icons'
+import { Sprout } from '../components/Garden'
 
 const RATING_STYLES = {
   LOVED: { label: 'Loved it', bg: '#FDE8F0', fg: '#B52A60' },
@@ -23,8 +24,8 @@ const dateFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'nu
 
 function StatTile({ value, label }) {
   return (
-    <Box sx={{ p: 1.75, borderRadius: '16px', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
-      <Typography sx={{ fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: 30, fontWeight: 800, lineHeight: 1, color: 'primary.main' }}>
+    <Box sx={{ p: 1.75, borderRadius: '20px', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+      <Typography sx={{ fontFamily: HEADING_FONT, fontSize: 32, fontWeight: 800, lineHeight: 1, color: 'primary.main' }}>
         {value}
       </Typography>
       <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'text.secondary', mt: 0.5 }}>{label}</Typography>
@@ -63,7 +64,7 @@ export function HistoryPage() {
 
   return (
     <Stack spacing={2.5}>
-      <Typography component="h1" sx={{ fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: 30, fontWeight: 800 }}>
+      <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: 30, fontWeight: 800 }}>
         History
       </Typography>
 
@@ -105,7 +106,10 @@ export function HistoryPage() {
               {completions.length === 0 ? (
                 <Card>
                   <Box sx={{ p: 3, textAlign: 'center' }}>
-                    <Typography sx={{ fontWeight: 800, mb: 0.5 }}>Nothing here yet</Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+                      <Sprout size={64} />
+                    </Box>
+                    <Typography variant="h6" sx={{ mb: 0.5 }}>Nothing here yet</Typography>
                     <Typography color="text.secondary">
                       Pick an idea on Today, try it, and rate it. It will show up here.
                     </Typography>
@@ -119,9 +123,9 @@ export function HistoryPage() {
                     return (
                       <Box
                         key={c.id}
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1, pr: 1.5, borderRadius: '16px', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1, pr: 1.5, borderRadius: '20px', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}
                       >
-                        <Box sx={{ width: 44, height: 44, flexShrink: 0, borderRadius: '12px', bgcolor: bg, color: fg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Box sx={{ width: 44, height: 44, flexShrink: 0, borderRadius: '50%', bgcolor: bg, color: fg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <ActivityIcon activityId={c.activityId} size={21} />
                         </Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>

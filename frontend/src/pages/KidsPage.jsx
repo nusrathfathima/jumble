@@ -5,9 +5,10 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { useAppData } from '../context/AppDataContext'
-import { softColorFor } from '../theme'
+import { softColorFor, HEADING_FONT } from '../theme'
 import { ChildAvatar } from '../components/ChildPicker'
 import { PlusIcon } from '../components/Icons'
+import { Sprout } from '../components/Garden'
 
 /** The Kids tab: every child with their age and interests, plus "Add a child". */
 export function KidsPage() {
@@ -17,7 +18,7 @@ export function KidsPage() {
   return (
     <Stack spacing={2.5}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-        <Typography component="h1" sx={{ fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: 30, fontWeight: 800 }}>
+        <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: 30, fontWeight: 800 }}>
           Your kids
         </Typography>
         <Button variant="contained" onClick={openAddChild} startIcon={<PlusIcon size={18} strokeWidth={2.4} />} sx={{ boxShadow: 'none' }}>
@@ -34,7 +35,10 @@ export function KidsPage() {
       {!loading && childList.length === 0 && (
         <Card>
           <Box sx={{ p: 3, textAlign: 'center' }}>
-            <Typography sx={{ fontWeight: 800, mb: 0.5 }}>No kids added yet</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+              <Sprout size={72} waving />
+            </Box>
+            <Typography variant="h6" sx={{ mb: 0.5 }}>No kids added yet</Typography>
             <Typography color="text.secondary">Add a child and Jumble will pick ideas for their age and interests.</Typography>
           </Box>
         </Card>
@@ -46,7 +50,7 @@ export function KidsPage() {
             <Box sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'flex-start' }}>
               <ChildAvatar child={child} size={56} />
               <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}>
+                <Typography sx={{ fontFamily: HEADING_FONT, fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}>
                   {child.name}
                 </Typography>
                 <Typography sx={{ fontSize: 14, color: 'text.secondary', mb: child.interestTagSlugs.length ? 1 : 0 }}>

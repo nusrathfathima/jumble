@@ -1,4 +1,5 @@
 import Box from '@mui/material/Box'
+import { HEADING_FONT } from '../theme'
 import Button from '@mui/material/Button'
 import Dialog from '@mui/material/Dialog'
 import DialogContent from '@mui/material/DialogContent'
@@ -42,7 +43,7 @@ export function SettingsDialog({ open, onClose, locationSet, onLocationChanged }
       slotProps={{ paper: { sx: { bgcolor: 'background.default' } } }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
-        <Typography component="span" sx={{ fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: 28, fontWeight: 800 }}>
+        <Typography component="span" sx={{ fontFamily: HEADING_FONT, fontSize: 28, fontWeight: 800 }}>
           Settings
         </Typography>
         <IconButton onClick={onClose} aria-label="Close" sx={{ color: 'text.secondary' }}>

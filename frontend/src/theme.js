@@ -1,59 +1,95 @@
 import { createTheme } from '@mui/material/styles'
 
-// Jumble's visual identity: "Bubblegum & Sky, refined" (design direction
-// A). Same sky blue and bubblegum pink family as before, but a shade
-// deeper so white text on a blue button and pink text on white both meet
-// accessibility contrast. A very light blue-white page background, white
-// cards, and colour used for meaning (actions, selection, each child)
-// rather than decoration.
+// Jumble's visual identity: "Garden Party" (design direction F3). Leafy
+// green for actions, warm peach as the second brand colour, and soft
+// butter, sky and peach tints for variety. Headings use Grandstander, a
+// bouncy hand-drawn style font that says "kids" at a glance, with
+// Nunito for easy-to-read body text.
+
+export const HEADING_FONT = '"Grandstander", "Nunito", system-ui, sans-serif'
+
+export const GREEN = '#2F7D4F'
+export const GREEN_DARK = '#1F5C38'
+export const GREEN_SOFT = '#E3F2E8'
+export const LEAF = '#7CC59A'
+export const LEAF_LIGHT = '#A8DBB9'
+export const SUN = '#FFC94A'
+
+// Soft background + readable text colour pairs. Each pair passes text
+// contrast on its own background.
+export const PEACH = { bg: '#FFE5D6', fg: '#9A4316' }
+export const SKY = { bg: '#E1F0FF', fg: '#1E5A92' }
+export const BUTTER = { bg: '#FFF5CC', fg: '#6E5400' }
+export const MINT = { bg: GREEN_SOFT, fg: GREEN_DARK }
+const LILAC = { bg: '#EFE7FF', fg: '#5B3BA8' }
+const ROSE = { bg: '#FFE3EC', fg: '#A3204F' }
+
+// The wordmark's two tones: "Jum" in green, "ble" in peach. Large text,
+// so 3:1 contrast is enough.
+export const WORDMARK_GREEN = GREEN
+export const WORDMARK_PEACH = '#E0703F'
+
+// Subtle confetti across the whole page background: small, pale dots in
+// the brand tints. Two tile sizes overlap so the pattern never looks
+// like an obvious grid.
+const dot = (x, y, r, rgba) => `radial-gradient(circle at ${x}px ${y}px, ${rgba} ${r}px, transparent ${r + 0.6}px)`
+const CONFETTI_A = [
+  dot(30, 40, 3.5, 'rgba(124, 197, 154, 0.38)'),
+  dot(190, 90, 3, 'rgba(255, 179, 138, 0.42)'),
+  dot(110, 210, 4, 'rgba(255, 214, 107, 0.42)'),
+  dot(250, 250, 3, 'rgba(156, 203, 242, 0.45)'),
+]
+const CONFETTI_B = [
+  dot(70, 130, 3, 'rgba(255, 179, 138, 0.35)'),
+  dot(300, 40, 3.5, 'rgba(156, 203, 242, 0.40)'),
+  dot(220, 320, 3, 'rgba(124, 197, 154, 0.35)'),
+  dot(340, 190, 2.5, 'rgba(255, 214, 107, 0.45)'),
+]
+const CONFETTI_IMAGE = [...CONFETTI_A, ...CONFETTI_B].join(', ')
+const CONFETTI_SIZE = [...CONFETTI_A.map(() => '280px 280px'), ...CONFETTI_B.map(() => '370px 370px')].join(', ')
+
 export const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1B6FA8',
-      dark: '#13527D',
-      light: '#E4F2FB',
+      main: GREEN,
+      dark: GREEN_DARK,
+      light: GREEN_SOFT,
       contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#D63A75',
-      dark: '#B52A60',
-      light: '#FDE8F0',
+      main: '#C25A2A',
+      dark: '#9A4316',
+      light: '#FFE5D6',
       contrastText: '#FFFFFF',
     },
-    error: {
-      main: '#E5484D',
-    },
-    warning: {
-      main: '#F2A93C',
-    },
-    success: {
-      main: '#2FB380',
-    },
+    error: { main: '#D64545' },
+    warning: { main: '#E6A23C' },
+    success: { main: '#2F9E62', dark: '#1F6E43' },
     background: {
-      default: '#F6FAFD',
+      default: '#F3F8F4',
       paper: '#FFFFFF',
     },
     text: {
-      primary: '#1C2B39',
-      secondary: '#5A6B7A',
+      primary: '#16301F',
+      secondary: '#4F6656',
     },
-    divider: '#E2ECF3',
+    divider: '#DCE8DF',
   },
   shape: {
     borderRadius: 16,
   },
   typography: {
     fontFamily: '"Nunito", system-ui, sans-serif',
-    h1: { fontFamily: '"Baloo 2", system-ui, sans-serif', fontWeight: 700 },
-    h2: { fontFamily: '"Baloo 2", system-ui, sans-serif', fontWeight: 700 },
-    h3: { fontFamily: '"Baloo 2", system-ui, sans-serif', fontWeight: 700 },
-    h4: { fontFamily: '"Baloo 2", system-ui, sans-serif', fontWeight: 700 },
-    h5: { fontFamily: '"Baloo 2", system-ui, sans-serif', fontWeight: 600 },
-    h6: { fontFamily: '"Baloo 2", system-ui, sans-serif', fontWeight: 600 },
+    h1: { fontFamily: HEADING_FONT, fontWeight: 800 },
+    h2: { fontFamily: HEADING_FONT, fontWeight: 800 },
+    h3: { fontFamily: HEADING_FONT, fontWeight: 800 },
+    h4: { fontFamily: HEADING_FONT, fontWeight: 800 },
+    h5: { fontFamily: HEADING_FONT, fontWeight: 800 },
+    h6: { fontFamily: HEADING_FONT, fontWeight: 800 },
     button: {
-      fontFamily: '"Baloo 2", system-ui, sans-serif',
-      fontWeight: 600,
+      fontFamily: '"Nunito", system-ui, sans-serif',
+      fontWeight: 800,
       textTransform: 'none',
     },
   },
@@ -61,19 +97,24 @@ export const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: '#F6FAFD',
+          backgroundColor: '#F3F8F4',
+          backgroundImage: CONFETTI_IMAGE,
+          backgroundSize: CONFETTI_SIZE,
+          backgroundAttachment: 'fixed',
         },
       },
     },
     MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
       styleOverrides: {
         root: {
-          borderRadius: 14,
-          paddingLeft: 18,
-          paddingRight: 18,
+          borderRadius: 999,
+          paddingLeft: 20,
+          paddingRight: 20,
           paddingTop: 9,
           paddingBottom: 9,
-          fontWeight: 700,
         },
       },
     },
@@ -87,16 +128,16 @@ export const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 22,
-          border: '1px solid #E2ECF3',
-          boxShadow: '0 6px 20px rgba(27, 111, 168, 0.08)',
+          borderRadius: 24,
+          border: '1px solid #DCE8DF',
+          boxShadow: '0 10px 24px rgba(47, 125, 79, 0.10)',
         },
       },
     },
     MuiChip: {
       styleOverrides: {
         root: {
-          fontWeight: 700,
+          fontWeight: 800,
         },
       },
     },
@@ -104,6 +145,7 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 14,
+          backgroundColor: '#FFFFFF',
         },
       },
     },
@@ -124,53 +166,26 @@ export const theme = createTheme({
   },
 })
 
-// The sunshine-yellow accent isn't a full palette color (yellow makes a
-// poor primary/secondary — too low-contrast for buttons and text), but
-// it's kept available for small one-off highlights so all three brand
-// colors show up somewhere in the app, not just blue and pink.
-export const ACCENT_YELLOW = '#FFD23F'
-export const ACCENT_YELLOW_TEXT = '#5B4400'
+// Bright tag colours, used for interest-tag chips in the "Add a child"
+// form (as borders and light fills only, never as text on white).
+const TAG_COLORS = ['#FF8A5B', '#2F9E62', '#E6A23C', '#4A90D9', '#9B6BDB', '#E05A8A', '#2BB3A3', '#D9822B']
 
-// A small rotating palette reserved for interest tags specifically — each
-// tag slug always resolves to the same color (via a simple string hash),
-// so a given interest reads consistently everywhere it appears (a child's
-// profile, the "add a child" picker, anywhere else tags show up later)
-// rather than shifting color on every render. Kept separate from the
-// theme's own primary/secondary so the brand colors stay reserved for
-// actions and structure, and this variety stays reserved for content.
-const TAG_COLORS = ['#FF6FA5', '#2FA8E0', '#FFD23F', '#4CD3A0', '#B78CFF', '#FF9142', '#4FD1E8', '#FF5C7A']
-
-export function colorForTag(slug) {
-  let hash = 0
-  for (let i = 0; i < slug.length; i += 1) {
-    hash = (hash * 31 + slug.charCodeAt(i)) >>> 0
-  }
-  return TAG_COLORS[hash % TAG_COLORS.length]
-}
-
-// The wordmark's two tones. Slightly brighter than primary/secondary
-// because it is large text, which only needs 3:1 contrast.
-export const WORDMARK_BLUE = '#1F8FCF'
-export const WORDMARK_PINK = '#E2558C'
-
-// Soft background + readable foreground pairs, used for child avatars and
-// activity thumbnails. Each pair passes text contrast on its own
-// background, unlike the bright TAG_COLORS above, which are only safe as
-// borders and fills.
-const SOFT_PAIRS = [
-  { bg: '#FDE8F0', fg: '#B52A60' },
-  { bg: '#FFF3C4', fg: '#7A5A00' },
-  { bg: '#E4F2FB', fg: '#13527D' },
-  { bg: '#E3F5EC', fg: '#1E6B47' },
-  { bg: '#EFE7FF', fg: '#5B3BA8' },
-  { bg: '#FFE9DA', fg: '#8A3D0F' },
-]
-
-export function softColorFor(key) {
-  const text = String(key)
+function hashOf(text) {
   let hash = 0
   for (let i = 0; i < text.length; i += 1) {
     hash = (hash * 31 + text.charCodeAt(i)) >>> 0
   }
-  return SOFT_PAIRS[hash % SOFT_PAIRS.length]
+  return hash
+}
+
+export function colorForTag(slug) {
+  return TAG_COLORS[hashOf(String(slug)) % TAG_COLORS.length]
+}
+
+const SOFT_PAIRS = [PEACH, SKY, BUTTER, MINT, LILAC, ROSE]
+
+// A soft { bg, fg } pair that stays the same for a given key (a child's
+// id, an activity id, a category), for avatars and thumbnails.
+export function softColorFor(key) {
+  return SOFT_PAIRS[hashOf(String(key)) % SOFT_PAIRS.length]
 }

@@ -16,7 +16,8 @@ import { getActivity } from '../api/activities'
 import { ApiError } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppDataContext'
-import { softColorFor } from '../theme'
+import { BUTTER, GREEN_DARK, HEADING_FONT, MINT, PEACH, SKY, softColorFor } from '../theme'
+import { Sprout, TopPickScene } from '../components/Garden'
 import { ChildPicker } from '../components/ChildPicker'
 import { ChoiceTiles } from '../components/ChoiceTiles'
 import { WeatherPill } from '../components/WeatherPill'
@@ -25,7 +26,7 @@ import { LOCATION_LABELS, MESS_LABELS, formatMinutes } from '../components/activ
 import {
   ActivityIcon,
   BackIcon,
-  ChevronRightIcon,
+  DiceIcon,
   DropIcon,
   EitherIcon,
   HouseIcon,
@@ -44,15 +45,15 @@ const TIME_MARKS = [
 ]
 
 const WHERE_OPTIONS = [
-  { value: 'INDOOR', label: 'Inside', Icon: HouseIcon },
-  { value: 'OUTDOOR', label: 'Outside', Icon: TreeIcon },
-  { value: 'EITHER', label: 'Either', Icon: EitherIcon },
+  { value: 'INDOOR', label: 'Inside', Icon: HouseIcon, tone: PEACH },
+  { value: 'OUTDOOR', label: 'Outside', Icon: TreeIcon, tone: MINT },
+  { value: 'EITHER', label: 'Either', Icon: EitherIcon, tone: SKY },
 ]
 
 const MESS_OPTIONS = [
-  { value: 1, label: 'Tidy', Icon: TidyIcon },
-  { value: 2, label: 'A little', Icon: DropIcon },
-  { value: 3, label: 'Go wild', Icon: SplatIcon },
+  { value: 1, label: 'Tidy', Icon: TidyIcon, tone: SKY },
+  { value: 2, label: 'A little', Icon: DropIcon, tone: BUTTER },
+  { value: 3, label: 'Go wild', Icon: SplatIcon, tone: PEACH },
 ]
 
 function greeting() {
@@ -62,12 +63,24 @@ function greeting() {
   return 'Good evening'
 }
 
+// The chunky green button with a darker "3D" edge underneath, which
+// sinks a little when pressed.
+const PRESSABLE = {
+  borderRadius: 999,
+  fontFamily: HEADING_FONT,
+  fontWeight: 800,
+  boxShadow: `0 5px 0 ${GREEN_DARK}`,
+  '&:hover': { boxShadow: `0 5px 0 ${GREEN_DARK}` },
+  '&:active': { boxShadow: `0 2px 0 ${GREEN_DARK}`, transform: 'translateY(3px)' },
+  '&.Mui-disabled': { boxShadow: 'none' },
+}
+
 function SectionLabel({ children, htmlFor }) {
   return (
     <Typography
       component={htmlFor ? 'label' : 'h2'}
       htmlFor={htmlFor}
-      sx={{ m: 0, fontSize: 15, fontWeight: 800, color: 'text.primary' }}
+      sx={{ m: 0, fontFamily: HEADING_FONT, fontSize: 17, fontWeight: 800, color: 'text.primary' }}
     >
       {children}
     </Typography>
@@ -152,13 +165,16 @@ export function TodayPage() {
     return (
       <Card sx={{ mt: 2 }}>
         <Box sx={{ p: { xs: 3, sm: 4 }, textAlign: 'center' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+            <Sprout size={84} waving />
+          </Box>
           <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>
             Let&rsquo;s meet your little one
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 2.5 }}>
             Ideas are picked for each child&rsquo;s age and interests, so add a child to get started.
           </Typography>
-          <Button variant="contained" size="large" onClick={openAddChild}>
+          <Button variant="contained" size="large" onClick={openAddChild} sx={PRESSABLE}>
             Add a child
           </Button>
         </Box>
@@ -175,7 +191,7 @@ export function TodayPage() {
             <IconButton onClick={() => setResults(null)} aria-label="Back to the form" sx={{ ml: -1, color: 'text.primary' }}>
               <BackIcon size={22} strokeWidth={2.5} />
             </IconButton>
-            <Typography component="h1" sx={{ fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: { xs: 22, sm: 26 }, fontWeight: 800, lineHeight: 1.15 }}>
+            <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: { xs: 22, sm: 26 }, fontWeight: 800, lineHeight: 1.15 }}>
               Ideas for {results.childName}
             </Typography>
           </Box>
@@ -184,7 +200,7 @@ export function TodayPage() {
               variant="outlined"
               size="small"
               onClick={shuffle}
-              startIcon={<EitherIcon size={16} strokeWidth={2.2} />}
+              startIcon={<DiceIcon size={16} strokeWidth={2.2} />}
               sx={{ flexShrink: 0, borderRadius: 999, bgcolor: 'background.paper' }}
             >
               Shuffle
@@ -204,7 +220,7 @@ export function TodayPage() {
 
             {others.length > 0 && (
               <Box>
-                <Typography component="h2" sx={{ fontSize: 15, fontWeight: 800, mb: 1 }}>
+                <Typography component="h2" sx={{ fontFamily: HEADING_FONT, fontSize: 17, fontWeight: 800, mb: 1 }}>
                   Or try one of these
                 </Typography>
                 <Stack spacing={1}>
@@ -233,14 +249,17 @@ export function TodayPage() {
 
   return (
     <Stack spacing={2}>
-      <Box>
-        <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.secondary' }}>
-          {greeting()}
-          {firstName ? `, ${firstName}` : ''}
-        </Typography>
-        <Typography component="h1" sx={{ fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: { xs: 28, sm: 36 }, fontWeight: 800, lineHeight: 1.1 }}>
-          What should we do today?
-        </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 1 }}>
+        <Box sx={{ flex: 1 }}>
+          <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'text.secondary' }}>
+            {greeting()}
+            {firstName ? `, ${firstName}` : ''}
+          </Typography>
+          <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: { xs: 27, sm: 36 }, fontWeight: 800, lineHeight: 1.15 }}>
+            What should we do today?
+          </Typography>
+        </Box>
+        <Sprout size={72} waving />
       </Box>
 
       <WeatherPill weather={weather} onSetLocation={openSettings} />
@@ -258,7 +277,9 @@ export function TodayPage() {
       <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <SectionLabel htmlFor="available-minutes">How much time?</SectionLabel>
-          <Typography sx={{ fontSize: 15, fontWeight: 800, color: 'primary.main' }}>{formatMinutes(availableMinutes)}</Typography>
+          <Typography component="span" sx={{ px: 1.25, py: 0.25, borderRadius: 999, bgcolor: BUTTER.bg, color: BUTTER.fg, fontSize: 14, fontWeight: 800 }}>
+            {formatMinutes(availableMinutes)}
+          </Typography>
         </Box>
         <Box sx={{ px: 1 }}>
           <Slider
@@ -288,21 +309,26 @@ export function TodayPage() {
 
       {error && <Alert severity="error">{error}</Alert>}
 
+      {/* On phones the button sticks just above the tab bar, so it's always
+          one tap away without scrolling to the bottom of the form. */}
+      <Box sx={{ position: { xs: 'sticky', sm: 'static' }, bottom: { xs: 80 }, zIndex: 2 }}>
       <Button
+        fullWidth
         variant="contained"
         size="large"
         onClick={handleSearch}
         disabled={searching || !selectedChild}
-        sx={{ height: 56, fontSize: 20, borderRadius: '16px', boxShadow: 'none' }}
+        startIcon={searching ? null : <DiceIcon size={24} strokeWidth={2.2} />}
+        sx={{ ...PRESSABLE, height: 56, fontSize: 21, mt: 1, mb: 0.75 }}
       >
         {searching ? 'Finding ideas…' : 'Jumble it!'}
       </Button>
+      </Box>
     </Stack>
   )
 }
 
 function TopPickCard({ suggestion, rated, onStart }) {
-  const { bg, fg } = softColorFor(suggestion.activityId)
   const [loaded, setLoaded] = useState(null)
 
   // Mess level and location aren't part of the suggestion itself, so the
@@ -324,30 +350,47 @@ function TopPickCard({ suggestion, rated, onStart }) {
 
   return (
     <Card component="article" sx={{ overflow: 'hidden' }}>
-      <Box sx={{ position: 'relative', height: { xs: 128, sm: 160 }, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: bg, color: fg }}>
-        <ActivityIcon activityId={suggestion.activityId} size={56} strokeWidth={1.6} />
-        <Box
-          component="span"
-          sx={{ position: 'absolute', top: 12, left: 12, px: 1.25, py: 0.5, borderRadius: 999, bgcolor: 'background.paper', color: 'secondary.dark', fontSize: 12, fontWeight: 800 }}
-        >
-          Top pick
+      <Box sx={{ position: 'relative', height: { xs: 138, sm: 168 }, display: 'flex', alignItems: 'center', justifyContent: 'center', color: GREEN_DARK }}>
+        <TopPickScene />
+        <Box sx={{ position: 'relative', transform: 'translate(36px, -14px) rotate(-8deg)' }}>
+          <ActivityIcon activityId={suggestion.activityId} size={58} strokeWidth={1.7} />
+        </Box>
+        <Box sx={{ position: 'absolute', left: 10, bottom: 4, display: 'flex', alignItems: 'flex-end', gap: 0.25 }}>
+          <Sprout size={56} />
+          <Box
+            component="span"
+            sx={{
+              mb: 3.75,
+              px: 1.5,
+              py: 0.75,
+              borderRadius: '16px 16px 16px 4px',
+              bgcolor: 'background.paper',
+              color: 'primary.dark',
+              fontFamily: HEADING_FONT,
+              fontSize: 14,
+              fontWeight: 800,
+              boxShadow: '0 3px 10px rgba(22, 48, 31, 0.10)',
+            }}
+          >
+            My top pick!
+          </Box>
         </Box>
       </Box>
-      <Stack spacing={1} sx={{ p: 2, pt: 1.75 }}>
-        <Typography component="h2" sx={{ fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: 25, fontWeight: 800, lineHeight: 1.1 }}>
+      <Stack spacing={1} sx={{ p: 2, pt: 1.5 }}>
+        <Typography component="h2" sx={{ fontFamily: HEADING_FONT, fontSize: 25, fontWeight: 800, lineHeight: 1.1 }}>
           {suggestion.title}
         </Typography>
-        <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: "wrap" }}>
-          <Chip size="small" label={formatMinutes(suggestion.durationMinutes)} sx={{ bgcolor: '#F1F5F8' }} />
-          {detail && <Chip size="small" label={MESS_LABELS[detail.messLevel]} sx={{ bgcolor: '#F1F5F8' }} />}
-          {detail && <Chip size="small" label={LOCATION_LABELS[detail.locationType]} sx={{ bgcolor: '#F1F5F8' }} />}
+        <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: 'wrap' }}>
+          <Chip size="small" label={formatMinutes(suggestion.durationMinutes)} sx={{ bgcolor: BUTTER.bg, color: BUTTER.fg }} />
+          {detail && <Chip size="small" label={MESS_LABELS[detail.messLevel]} sx={{ bgcolor: MINT.bg, color: MINT.fg }} />}
+          {detail && <Chip size="small" label={LOCATION_LABELS[detail.locationType]} sx={{ bgcolor: PEACH.bg, color: PEACH.fg }} />}
         </Stack>
         <Typography sx={{ fontSize: 14, lineHeight: 1.45, color: 'text.secondary' }}>{suggestion.explanation}</Typography>
         {rated && (
           <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'success.dark' }}>Rated. Thanks!</Typography>
         )}
-        <Button variant="contained" size="large" onClick={onStart} sx={{ mt: 0.5, height: 50, fontSize: 18, boxShadow: 'none' }}>
-          Let&rsquo;s start
+        <Button variant="contained" size="large" onClick={onStart} sx={{ ...PRESSABLE, mt: 0.5, mb: 0.75, height: 52, fontSize: 19 }}>
+          Let&rsquo;s start!
         </Button>
       </Stack>
     </Card>
@@ -355,7 +398,7 @@ function TopPickCard({ suggestion, rated, onStart }) {
 }
 
 function AlternativeRow({ suggestion, onClick }) {
-  const { bg, fg } = softColorFor(suggestion.activityId)
+  const tone = softColorFor(suggestion.activityId)
   return (
     <ButtonBase
       onClick={onClick}
@@ -367,23 +410,20 @@ function AlternativeRow({ suggestion, onClick }) {
         pl: 1,
         pr: 1.5,
         py: 1,
-        borderRadius: '16px',
+        borderRadius: '20px',
         bgcolor: 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
         textAlign: 'left',
-        '&:hover': { borderColor: '#A9BCCB' },
+        '&:hover': { borderColor: '#93AE9B' },
       }}
     >
-      <Box sx={{ width: 46, height: 46, flexShrink: 0, borderRadius: '12px', bgcolor: bg, color: fg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIcon activityId={suggestion.activityId} size={22} />
+      <Box sx={{ width: 46, height: 46, flexShrink: 0, borderRadius: '50%', bgcolor: tone.bg, color: tone.fg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIcon activityId={suggestion.activityId} size={22} strokeWidth={2.2} />
       </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 800 }}>{suggestion.title}</Typography>
-        <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary' }}>{formatMinutes(suggestion.durationMinutes)}</Typography>
-      </Box>
-      <Box component="span" sx={{ color: '#8A9AA8', display: 'flex' }}>
-        <ChevronRightIcon size={18} strokeWidth={2.2} />
+      <Typography sx={{ flex: 1, minWidth: 0, fontFamily: HEADING_FONT, fontSize: 16, fontWeight: 800 }}>{suggestion.title}</Typography>
+      <Box component="span" sx={{ flexShrink: 0, px: 1.1, py: 0.25, borderRadius: 999, bgcolor: tone.bg, color: tone.fg, fontSize: 12, fontWeight: 800 }}>
+        {formatMinutes(suggestion.durationMinutes)}
       </Box>
     </ButtonBase>
   )
@@ -393,6 +433,7 @@ function NoResults({ nearMisses, onBack }) {
   return (
     <Card>
       <Box sx={{ p: { xs: 2.5, sm: 3 } }}>
+        <Sprout size={60} style={{ marginBottom: 8 }} />
         <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>
           Nothing fits just right
         </Typography>
@@ -405,7 +446,7 @@ function NoResults({ nearMisses, onBack }) {
             <Typography sx={{ fontSize: 15, fontWeight: 800, mb: 1 }}>So close! These just need a couple of things:</Typography>
             <Stack spacing={1}>
               {nearMisses.map((nm) => (
-                <Box key={nm.activityId} sx={{ p: 1.5, borderRadius: '12px', border: '1px dashed', borderColor: '#A9BCCB' }}>
+                <Box key={nm.activityId} sx={{ p: 1.5, borderRadius: '12px', border: '1px dashed', borderColor: '#93AE9B', bgcolor: 'background.paper' }}>
                   <Typography sx={{ fontWeight: 800 }}>{nm.title}</Typography>
                   <Typography sx={{ fontSize: 14, color: 'text.secondary' }}>Missing: {nm.missingMaterials.join(', ')}</Typography>
                 </Box>

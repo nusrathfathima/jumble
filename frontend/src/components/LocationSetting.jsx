@@ -74,7 +74,7 @@ export function LocationSetting({ locationSet, onChanged }) {
     <SettingsSection title="Weather" aside={status}>
       <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mb: 2 }}>
         <Box
-          sx={{ width: 40, height: 40, flexShrink: 0, borderRadius: '12px', bgcolor: 'primary.light', color: 'primary.dark', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          sx={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', bgcolor: 'primary.light', color: 'primary.dark', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <LocationIcon size={20} />
         </Box>

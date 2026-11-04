@@ -11,6 +11,7 @@ import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
 import { useAuth } from '../context/AuthContext'
 import { ApiError } from '../api/client'
+import { Sprout } from '../components/Garden'
 
 export function SignupPage() {
   const { signup } = useAuth()
@@ -55,6 +56,9 @@ export function SignupPage() {
     >
       <Card sx={{ width: '100%', maxWidth: 420 }}>
         <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+            <Sprout size={76} waving />
+          </Box>
           <Typography variant="h4" align="center" gutterBottom>
             Create your account
           </Typography>

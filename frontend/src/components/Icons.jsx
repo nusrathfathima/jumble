@@ -137,6 +137,22 @@ export const CloseIcon = (p) => (
   </Icon>
 )
 
+export const DiceIcon = (p) => (
+  <Icon {...p}>
+    <rect x="4" y="4" width="16" height="16" rx="4" />
+    <circle cx="9" cy="9" r="1.2" fill="currentColor" />
+    <circle cx="15" cy="15" r="1.2" fill="currentColor" />
+    <circle cx="15" cy="9" r="1.2" fill="currentColor" />
+    <circle cx="9" cy="15" r="1.2" fill="currentColor" />
+  </Icon>
+)
+
+export const CheckIcon = (p) => (
+  <Icon {...p}>
+    <path d="M5 12l5 5 9-10" />
+  </Icon>
+)
+
 export const LocationIcon = (p) => (
   <Icon {...p}>
     <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" />

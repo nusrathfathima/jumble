@@ -8,7 +8,8 @@ import ButtonBase from '@mui/material/ButtonBase'
 import Menu from '@mui/material/Menu'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { WORDMARK_BLUE, WORDMARK_PINK } from '../theme'
+import { HEADING_FONT, WORDMARK_GREEN, WORDMARK_PEACH } from '../theme'
+import { Bunting } from './Garden'
 import { ChevronDownIcon, SettingsIcon } from './Icons'
 
 /**
@@ -39,7 +40,7 @@ export function TopBar({ onOpenSettings }) {
   }
 
   return (
-    <AppBar position="sticky" color="default" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+    <AppBar position="sticky" color="default" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider', overflow: 'visible' }}>
       <Toolbar
         sx={{
           display: 'grid',
@@ -93,12 +94,12 @@ export function TopBar({ onOpenSettings }) {
         <Typography
           variant="h4"
           component="div"
-          sx={{ fontSize: { xs: 28, sm: 32 }, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, userSelect: 'none', justifySelf: 'center' }}
+          sx={{ fontFamily: HEADING_FONT, fontSize: { xs: 30, sm: 34 }, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, userSelect: 'none', justifySelf: 'center' }}
         >
-          <Box component="span" sx={{ color: WORDMARK_BLUE }}>
+          <Box component="span" sx={{ color: WORDMARK_GREEN }}>
             Jum
           </Box>
-          <Box component="span" sx={{ color: WORDMARK_PINK }}>
+          <Box component="span" sx={{ color: WORDMARK_PEACH }}>
             ble
           </Box>
         </Typography>
@@ -129,6 +130,10 @@ export function TopBar({ onOpenSettings }) {
           )}
         </Box>
       </Toolbar>
+      {/* Party bunting hanging just below the header, over the page. */}
+      <Box sx={{ position: 'absolute', left: 0, right: 0, top: '100%', pointerEvents: 'none' }}>
+        <Bunting />
+      </Box>
     </AppBar>
   )
 }

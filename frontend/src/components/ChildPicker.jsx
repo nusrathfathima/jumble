@@ -1,8 +1,9 @@
 import Box from '@mui/material/Box'
 import ButtonBase from '@mui/material/ButtonBase'
 import Typography from '@mui/material/Typography'
-import { softColorFor } from '../theme'
+import { softColorFor, HEADING_FONT } from '../theme'
 import { PlusIcon } from './Icons'
+import { AvatarSprout } from './Garden'
 
 export function ChildAvatar({ child, size = 56, selected = false }) {
   const { bg, fg } = softColorFor(child.id)
@@ -10,6 +11,7 @@ export function ChildAvatar({ child, size = 56, selected = false }) {
     <Box
       component="span"
       sx={{
+        position: 'relative',
         width: size,
         height: size,
         flexShrink: 0,
@@ -21,8 +23,8 @@ export function ChildAvatar({ child, size = 56, selected = false }) {
         bgcolor: bg,
         color: fg,
         border: '3px solid',
-        borderColor: selected ? fg : 'transparent',
-        fontFamily: '"Baloo 2", system-ui, sans-serif',
+        borderColor: selected ? 'primary.main' : 'transparent',
+        fontFamily: HEADING_FONT,
         fontSize: size * 0.43,
         fontWeight: 800,
         lineHeight: 1,
@@ -30,6 +32,7 @@ export function ChildAvatar({ child, size = 56, selected = false }) {
       }}
     >
       {child.name.trim().charAt(0).toUpperCase()}
+      {selected && <AvatarSprout style={{ position: 'absolute', top: -15, left: '50%', marginLeft: -13 }} />}
     </Box>
   )
 }
@@ -43,7 +46,7 @@ export function ChildPicker({ childList, selectedId, onSelect, onAdd }) {
     <Box
       role="radiogroup"
       aria-label="Who's playing"
-      sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 0.5, mx: -0.5, px: 0.5 }}
+      sx={{ display: 'flex', gap: 2, overflowX: 'auto', pt: 1.5, pb: 0.5, mx: -0.5, px: 0.5 }}
     >
       {childList.map((child) => {
         const selected = child.id === selectedId
