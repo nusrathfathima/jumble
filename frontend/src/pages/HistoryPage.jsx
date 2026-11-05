@@ -14,6 +14,7 @@ import { softColorFor, HEADING_FONT } from '../theme'
 import { ChildPicker } from '../components/ChildPicker'
 import { ActivityIcon } from '../components/Icons'
 import { Sprout } from '../components/Garden'
+import { HistoryGarden } from '../components/HistoryGarden'
 
 const RATING_STYLES = {
   LOVED: { label: 'Loved it', bg: '#FDE8F0', fg: '#B52A60' },
@@ -107,6 +108,8 @@ export function HistoryPage() {
                   </Box>
                 </Typography>
               )}
+
+              {completions.length > 0 && <HistoryGarden completions={completions} childName={selectedChild.name} />}
 
               {completions.length === 0 ? (
                 <Card>

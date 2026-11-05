@@ -46,12 +46,15 @@ export function SpinWheel({ suggestions, childName, hasPick, onLanded }) {
   const [spinning, setSpinning] = useState(false)
   const [cheering, setCheering] = useState(false)
   const [announcement, setAnnouncement] = useState('')
+  // The slice the wheel stopped on. The others fade back so it glows.
+  const [winner, setWinner] = useState(null)
   const pendingRef = useRef(null)
 
   function finish() {
     const landed = pendingRef.current
     if (!landed) return
     pendingRef.current = null
+    setWinner(landed.slice)
     setSpinning(false)
     setCheering(true)
     window.setTimeout(() => setCheering(false), 1800)
@@ -68,7 +71,8 @@ export function SpinWheel({ suggestions, childName, hasPick, onLanded }) {
     const base = rotation - (rotation % 360)
     const next = base + 360 * 6 + ((360 - target) % 360)
 
-    pendingRef.current = suggestions[slice % count]
+    pendingRef.current = { ...suggestions[slice % count], slice }
+    setWinner(null)
     setSpinning(true)
     setCheering(false)
     setAnnouncement('')
@@ -88,8 +92,9 @@ export function SpinWheel({ suggestions, childName, hasPick, onLanded }) {
     const [x1, y1] = point(a1, RADIUS)
     const [ix, iy] = point(mid, RADIUS * 0.64)
     const iconSize = slices > 8 ? 22 : 28
+    const faded = winner != null && winner !== k
     paths.push(
-      <g key={k}>
+      <g key={k} style={{ opacity: faded ? 0.4 : 1, transition: 'opacity .5s ease' }}>
         <path
           d={`M0 0 L${x0} ${y0} A${RADIUS} ${RADIUS} 0 0 1 ${x1} ${y1} Z`}
           fill={SEGMENT_COLORS[(k % count) % SEGMENT_COLORS.length]}
@@ -160,7 +165,7 @@ export function SpinWheel({ suggestions, childName, hasPick, onLanded }) {
             boxShadow: '0 2px 8px rgba(22, 48, 31, 0.15)',
           }}
         >
-          <Sprout size={56} face={cheering ? 'star' : 'happy'} />
+          <Sprout size={56} face={cheering ? 'star' : 'happy'} watch={!cheering} />
         </Box>
       </Box>
 

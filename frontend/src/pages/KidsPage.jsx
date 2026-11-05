@@ -43,7 +43,7 @@ export function KidsPage() {
         <Card>
           <Box sx={{ p: 3, textAlign: 'center' }}>
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
-              <Sprout size={72} waving />
+              <Sprout size={72} waving watch />
             </Box>
             <Typography variant="h6" sx={{ mb: 0.5 }}>No kids added yet</Typography>
             <Typography color="text.secondary">Add a child and Jumble will pick ideas for their age and interests.</Typography>

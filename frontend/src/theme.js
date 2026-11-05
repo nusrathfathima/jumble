@@ -33,20 +33,18 @@ export const WORDMARK_PEACH = '#E0703F'
 // the brand tints. Two tile sizes overlap so the pattern never looks
 // like an obvious grid.
 const dot = (x, y, r, rgba) => `radial-gradient(circle at ${x}px ${y}px, ${rgba} ${r}px, transparent ${r + 0.6}px)`
-const CONFETTI_A = [
+export const CONFETTI_A = [
   dot(30, 40, 3.5, 'rgba(124, 197, 154, 0.38)'),
   dot(190, 90, 3, 'rgba(255, 179, 138, 0.42)'),
   dot(110, 210, 4, 'rgba(255, 214, 107, 0.42)'),
   dot(250, 250, 3, 'rgba(156, 203, 242, 0.45)'),
 ]
-const CONFETTI_B = [
+export const CONFETTI_B = [
   dot(70, 130, 3, 'rgba(255, 179, 138, 0.35)'),
   dot(300, 40, 3.5, 'rgba(156, 203, 242, 0.40)'),
   dot(220, 320, 3, 'rgba(124, 197, 154, 0.35)'),
   dot(340, 190, 2.5, 'rgba(255, 214, 107, 0.45)'),
 ]
-const CONFETTI_IMAGE = [...CONFETTI_A, ...CONFETTI_B].join(', ')
-const CONFETTI_SIZE = [...CONFETTI_A.map(() => '280px 280px'), ...CONFETTI_B.map(() => '370px 370px')].join(', ')
 
 export const theme = createTheme({
   palette: {
@@ -97,10 +95,8 @@ export const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
+          // The confetti dots are drawn by <MovingDots /> so they can drift.
           backgroundColor: '#F3F8F4',
-          backgroundImage: CONFETTI_IMAGE,
-          backgroundSize: CONFETTI_SIZE,
-          backgroundAttachment: 'fixed',
         },
       },
     },

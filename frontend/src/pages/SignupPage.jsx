@@ -63,7 +63,7 @@ export function SignupPage() {
       <Card sx={{ width: '100%', maxWidth: 440 }}>
         <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
-            <Sprout size={76} waving />
+            <Sprout size={76} waving watch />
           </Box>
           <Typography variant="h4" align="center" gutterBottom>
             Create your account

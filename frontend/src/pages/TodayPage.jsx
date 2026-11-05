@@ -7,6 +7,7 @@ import Card from '@mui/material/Card'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
+import Skeleton from '@mui/material/Skeleton'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
@@ -19,7 +20,7 @@ import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppDataContext'
 import { keyframes } from '@mui/material/styles'
 import { BUTTER, GREEN_DARK, HEADING_FONT, MINT, PEACH, SKY, softColorFor } from '../theme'
-import { Sprout, TopPickScene } from '../components/Garden'
+import { SnapshotScene, Sprout } from '../components/Garden'
 import { ChildPicker } from '../components/ChildPicker'
 import { ChoiceTiles } from '../components/ChoiceTiles'
 import { WeatherPill } from '../components/WeatherPill'
@@ -66,9 +67,10 @@ const MESS_OPTIONS = [
   { value: 3, label: 'Go wild', Icon: SplatIcon, tone: PEACH },
 ]
 
-const popIn = keyframes`
-  from { transform: scale(.85); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+// The top pick settles in gently: a soft fade and a small rise.
+const settleIn = keyframes`
+  from { transform: translateY(14px) scale(.985); opacity: 0; }
+  to { transform: none; opacity: 1; }
 `
 
 function greeting() {
@@ -197,8 +199,10 @@ export function TodayPage() {
   // The wheel landed: spotlight that idea, with confetti.
   function handleLanded(activityId) {
     setPick({ id: activityId, by: 'wheel' })
-    burstConfetti()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    burstConfetti({ count: 70 })
+    // A short pause, so the glowing winning slice is seen before the page
+    // glides up to the card.
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 450)
   }
 
   if (loading) {
@@ -218,7 +222,7 @@ export function TodayPage() {
       <Card sx={{ mt: 2 }}>
         <Box sx={{ p: { xs: 3, sm: 4 }, textAlign: 'center' }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
-            <Sprout size={84} waving />
+            <Sprout size={84} waving watch />
           </Box>
           <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>
             Let&rsquo;s meet your little one
@@ -261,7 +265,7 @@ export function TodayPage() {
         ) : (
           <>
             {top && (
-              <Box key={top.activityId} sx={{ animation: `${popIn} .5s cubic-bezier(.3,1.5,.5,1) both`, '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
+              <Box key={top.activityId} sx={{ animation: `${settleIn} .55s cubic-bezier(.22,.8,.3,1) both`, '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
                 <TopPickCard
                   suggestion={top}
                   bubble={bubble}
@@ -400,7 +404,7 @@ export function TodayPage() {
               What should we do today?
             </Typography>
           </Box>
-          <Sprout size={84} waving />
+          <Sprout size={84} waving watch />
         </Box>
 
         <Box sx={{ width: 640 }}>
@@ -436,7 +440,7 @@ export function TodayPage() {
             What should we do today?
           </Typography>
         </Box>
-        <Sprout size={72} waving />
+        <Sprout size={72} waving watch />
       </Box>
 
       <WeatherPill weather={weather} status={weatherStatus} onRetry={reloadWeather} onSetLocation={openSettings} />
@@ -636,13 +640,21 @@ function LoadErrorCard({ message, onRetry }) {
   )
 }
 
+const SECTION_LABEL = { fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.secondary', mb: 0.75 }
+
+/**
+ * The idea in the spotlight, as a taped-on snapshot with a sneak peek
+ * beside it: what you'll need and the first two steps, so a parent can
+ * see what's involved before opening the full instructions.
+ */
 function TopPickCard({ suggestion, bubble, rated, onStart }) {
   const [loaded, setLoaded] = useState(null)
 
-  // Mess level and location aren't part of the suggestion itself, so the
-  // card fetches the activity's detail to show them. Results are tagged
-  // with the activity id, so switching ideas never shows the previous card's
-  // details for a moment.
+  // Mess level, location, materials and steps aren't part of the
+  // suggestion itself, so the card fetches the activity's detail (cached,
+  // so opening "Let's start" afterwards is instant). Results are tagged
+  // with the activity id, so switching ideas never shows the previous
+  // card's details for a moment.
   useEffect(() => {
     let cancelled = false
     const id = suggestion.activityId
@@ -655,51 +667,115 @@ function TopPickCard({ suggestion, bubble, rated, onStart }) {
   }, [suggestion.activityId])
 
   const detail = loaded?.id === suggestion.activityId ? loaded.data : null
+  const tone = softColorFor(suggestion.activityId)
+  const required = detail?.materials.filter((m) => !m.isOptional) ?? []
+  const optional = detail?.materials.filter((m) => m.isOptional) ?? []
+  const firstSteps = detail?.steps.slice(0, 2) ?? []
 
   return (
-    <Card component="article" sx={{ overflow: 'hidden' }}>
-      <Box sx={{ position: 'relative', height: { xs: 138, sm: 168, lg: 250 }, display: 'flex', alignItems: 'center', justifyContent: 'center', color: GREEN_DARK }}>
-        <TopPickScene />
-        <Box sx={{ position: 'relative', transform: 'translate(36px, -14px) rotate(-8deg)' }}>
-          <ActivityIcon activityId={suggestion.activityId} size={58} strokeWidth={1.7} />
-        </Box>
-        <Box sx={{ position: 'absolute', left: 10, bottom: 4, display: 'flex', alignItems: 'flex-end', gap: 0.25 }}>
-          <Sprout size={56} />
-          <Box
-            component="span"
-            sx={{
-              mb: 3.75,
-              px: 1.5,
-              py: 0.75,
-              borderRadius: '16px 16px 16px 4px',
-              bgcolor: 'background.paper',
-              color: 'primary.dark',
-              fontFamily: HEADING_FONT,
-              fontSize: 14,
-              fontWeight: 800,
-              boxShadow: '0 3px 10px rgba(22, 48, 31, 0.10)',
-            }}
-          >
-            {bubble}
+    <Card
+      component="article"
+      sx={{
+        overflow: 'visible',
+        p: { xs: 2, sm: 2.5, md: 3 },
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: '280px minmax(0, 1fr)' },
+        gap: { xs: 2.5, md: 4 },
+        alignItems: 'center',
+      }}
+    >
+      {/* The snapshot */}
+      <Box
+        sx={{
+          position: 'relative',
+          justifySelf: 'center',
+          width: { xs: 'min(100%, 270px)', md: '100%' },
+          mt: { xs: 1, md: 0 },
+          p: 1.5,
+          pb: 1.75,
+          bgcolor: '#FFFFFF',
+          boxShadow: '0 10px 24px rgba(22, 48, 31, 0.16)',
+          transform: 'rotate(-3deg)',
+          transition: 'transform .3s ease',
+          '&:hover': { transform: 'rotate(0deg) scale(1.02)' },
+          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+        }}
+      >
+        <Box aria-hidden="true" sx={{ position: 'absolute', top: -12, left: '50%', width: 92, height: 26, transform: 'translateX(-50%) rotate(4deg)', bgcolor: 'rgba(255, 214, 107, 0.78)' }} />
+        <Box sx={{ position: 'relative', aspectRatio: '1.15', maxWidth: '100%', overflow: 'hidden' }}>
+          <SnapshotScene sky={tone.bg} />
+          <Box sx={{ position: 'absolute', top: '22%', right: '24%', color: tone.fg, transform: 'rotate(-10deg)' }}>
+            <ActivityIcon activityId={suggestion.activityId} size={44} strokeWidth={1.9} />
+          </Box>
+          <Box sx={{ position: 'absolute', left: '8%', bottom: '6%' }}>
+            <Sprout size={64} watch />
           </Box>
         </Box>
-      </Box>
-      <Stack spacing={1} sx={{ p: 2, pt: 1.5 }}>
-        <Typography component="h2" sx={{ fontFamily: HEADING_FONT, fontSize: 25, fontWeight: 800, lineHeight: 1.1 }}>
-          {suggestion.title}
+        <Typography sx={{ mt: 1.25, textAlign: 'center', fontFamily: HEADING_FONT, fontSize: 19, fontWeight: 800, color: 'primary.dark' }}>
+          {bubble}
         </Typography>
-        <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: 'wrap' }}>
-          <Chip size="small" label={formatMinutes(suggestion.durationMinutes)} sx={{ bgcolor: BUTTER.bg, color: BUTTER.fg }} />
-          {detail && <Chip size="small" label={MESS_LABELS[detail.messLevel]} sx={{ bgcolor: MINT.bg, color: MINT.fg }} />}
-          {detail && <Chip size="small" label={LOCATION_LABELS[detail.locationType]} sx={{ bgcolor: PEACH.bg, color: PEACH.fg }} />}
-        </Stack>
-        <Typography sx={{ fontSize: 14, lineHeight: 1.45, color: 'text.secondary' }}>{suggestion.explanation}</Typography>
-        {rated && (
-          <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'success.dark' }}>Rated. Thanks!</Typography>
+      </Box>
+
+      {/* The sneak peek */}
+      <Stack spacing={1.75} sx={{ minWidth: 0 }}>
+        <Box>
+          <Typography component="h2" sx={{ fontFamily: HEADING_FONT, fontSize: { xs: 25, md: 30 }, fontWeight: 800, lineHeight: 1.1, mb: 1 }}>
+            {suggestion.title}
+          </Typography>
+          <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: 'wrap', mb: 1 }}>
+            <Chip size="small" label={formatMinutes(suggestion.durationMinutes)} sx={{ bgcolor: BUTTER.bg, color: BUTTER.fg }} />
+            {detail && <Chip size="small" label={MESS_LABELS[detail.messLevel]} sx={{ bgcolor: MINT.bg, color: MINT.fg }} />}
+            {detail && <Chip size="small" label={LOCATION_LABELS[detail.locationType]} sx={{ bgcolor: PEACH.bg, color: PEACH.fg }} />}
+          </Stack>
+          <Typography sx={{ fontSize: 14, lineHeight: 1.45, color: 'text.secondary' }}>{suggestion.explanation}</Typography>
+        </Box>
+
+        <Box>
+          <Typography component="h3" sx={SECTION_LABEL}>You&rsquo;ll need</Typography>
+          {!detail ? (
+            <Skeleton variant="rounded" width={220} height={26} sx={{ borderRadius: 999 }} />
+          ) : required.length + optional.length === 0 ? (
+            <Typography sx={{ fontSize: 14 }}>Nothing at all, just yourselves.</Typography>
+          ) : (
+            <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: 'wrap' }}>
+              {required.map((m) => (
+                <Chip key={m.slug} size="small" icon={<CheckIcon size={14} strokeWidth={2.6} />} label={m.displayName} sx={{ bgcolor: MINT.bg, color: MINT.fg, '& .MuiChip-icon': { color: MINT.fg } }} />
+              ))}
+              {optional.map((m) => (
+                <Chip key={m.slug} size="small" label={`${m.displayName} (optional)`} sx={{ bgcolor: '#F1F5F8', color: '#3E5060' }} />
+              ))}
+            </Stack>
+          )}
+        </Box>
+
+        {firstSteps.length > 0 && (
+          <Box>
+            <Typography component="h3" sx={SECTION_LABEL}>First steps</Typography>
+            <Stack component="ol" spacing={0.75} sx={{ m: 0, p: 0, listStyle: 'none' }}>
+              {firstSteps.map((step) => (
+                <Box component="li" key={step.stepNumber} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
+                  <Box aria-hidden="true" sx={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', bgcolor: 'primary.light', color: 'primary.dark', fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {step.stepNumber}
+                  </Box>
+                  <Typography sx={{ fontSize: 14.5, lineHeight: 1.45 }}>{step.shortText}</Typography>
+                </Box>
+              ))}
+            </Stack>
+          </Box>
         )}
-        <Button variant="contained" size="large" onClick={onStart} sx={{ ...PRESSABLE, mt: 0.5, mb: 0.75, height: 52, fontSize: 19 }}>
-          Let&rsquo;s start!
-        </Button>
+
+        {rated && <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'success.dark' }}>Rated. Thanks!</Typography>}
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', pt: 0.5, pb: 0.75 }}>
+          <Button variant="contained" size="large" onClick={onStart} sx={{ ...PRESSABLE, height: 50, px: 4, fontSize: 18, width: { xs: '100%', sm: 'auto' } }}>
+            Let&rsquo;s start
+          </Button>
+          {detail && detail.steps.length > 2 && (
+            <Button variant="text" onClick={onStart} sx={{ fontWeight: 800, textDecoration: 'underline', textUnderlineOffset: 3, mx: { xs: 'auto', sm: 0 } }}>
+              See all {detail.steps.length} steps
+            </Button>
+          )}
+        </Box>
       </Stack>
     </Card>
   )
