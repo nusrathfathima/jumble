@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
+import CircularProgress from '@mui/material/CircularProgress'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Dialog from '@mui/material/Dialog'
@@ -42,7 +44,15 @@ function ShellContent({ settingsOpen, onCloseSettings }) {
         // tab bar is fixed to the bottom, so leave room for it at the end.
         sx={{ maxWidth: { xs: 600, md: 760, lg: 1100 }, pt: { xs: 1.5, sm: 3 }, pb: { xs: 12, sm: 6 } }}
       >
-        <Outlet />
+        <Suspense
+          fallback={
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress size={28} />
+            </Box>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </Container>
 
       {isPhone && <BottomNav />}

@@ -18,30 +18,56 @@ export function AppDataProvider({ children: content, onOpenSettings }) {
   const [childList, setChildList] = useState([])
   const [tags, setTags] = useState([])
   const [weather, setWeather] = useState(null)
+  // 'loading' | 'ready' | 'error'
+  const [weatherStatus, setWeatherStatus] = useState('loading')
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
   const [selectedChildId, setSelectedChildId] = useState(null)
   const [addChildOpen, setAddChildOpen] = useState(false)
 
-  const loadWeather = useCallback(() => {
-    // Fetched separately from children and tags, so a slow or failed
-    // weather lookup never holds up the rest of the app.
+  // Weather is fetched separately from children and tags, so a slow or
+  // failed weather lookup never holds up the rest of the app.
+  const fetchWeather = useCallback(() => {
     getTodayWeather()
-      .then(setWeather)
-      .catch(() => setWeather(null))
+      .then((data) => {
+        setWeather(data)
+        setWeatherStatus('ready')
+      })
+      .catch(() => {
+        setWeather(null)
+        setWeatherStatus('error')
+      })
   }, [])
 
-  useEffect(() => {
+  const loadWeather = useCallback(() => {
+    setWeatherStatus('loading')
+    fetchWeather()
+  }, [fetchWeather])
+
+  const fetchFamily = useCallback(() => {
     Promise.all([listChildren(), listTags()])
       .then(([childrenData, tagsData]) => {
         setChildList(childrenData)
         setTags(tagsData)
         setSelectedChildId((current) => current ?? childrenData[0]?.id ?? null)
+        setLoadError(null)
       })
-      .catch(() => {})
+      // Shown as a "Try again" message instead of an empty page that
+      // looks like the family has no children.
+      .catch((err) => setLoadError(err?.message || 'Could not load your family.'))
       .finally(() => setLoading(false))
+  }, [])
 
-    loadWeather()
-  }, [loadWeather])
+  const reloadFamily = useCallback(() => {
+    setLoading(true)
+    setLoadError(null)
+    fetchFamily()
+  }, [fetchFamily])
+
+  useEffect(() => {
+    fetchFamily()
+    fetchWeather()
+  }, [fetchFamily, fetchWeather])
 
   const addChild = useCallback((child) => {
     setChildList((prev) => [...prev, child])
@@ -53,7 +79,10 @@ export function AppDataProvider({ children: content, onOpenSettings }) {
     childList,
     tags,
     weather,
+    weatherStatus,
     loading,
+    loadError,
+    reloadFamily,
     selectedChildId,
     setSelectedChildId,
     selectedChild: childList.find((c) => c.id === selectedChildId) ?? childList[0] ?? null,

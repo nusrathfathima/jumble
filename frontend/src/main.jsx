@@ -7,6 +7,10 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext'
 import { theme } from './theme'
+import { warmUpServer } from './api/client'
+
+// Start waking the (free, sleepy) server the moment the page opens.
+warmUpServer()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -12,10 +12,12 @@ import org.springframework.web.client.RestClient;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Today's weather for a parent's location, from Open-Meteo (free, no API
@@ -38,8 +40,15 @@ public class WeatherService {
     /** Daily max chance of precipitation, in percent, at or above which a day counts as wet. */
     private static final int RAIN_CHANCE_THRESHOLD = 50;
 
+    /** How long to stop retrying an area after its weather lookup fails. */
+    private static final Duration FAILURE_BACKOFF = Duration.ofMinutes(10);
+
     private final WeatherCacheRepository weatherCacheRepository;
     private final RestClient restClient;
+
+    // Areas whose last lookup failed, and when it's worth trying again.
+    // In memory only: a restart simply forgets it, which is fine.
+    private final Map<String, Instant> failedUntil = new ConcurrentHashMap<>();
 
     public WeatherService(WeatherCacheRepository weatherCacheRepository) {
         this.weatherCacheRepository = weatherCacheRepository;
@@ -48,8 +57,8 @@ public class WeatherService {
         // suggestions request, so a slow weather API should cost a parent
         // a few seconds at most, not hang the whole page.
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(Duration.ofSeconds(3));
-        requestFactory.setReadTimeout(Duration.ofSeconds(5));
+        requestFactory.setConnectTimeout(Duration.ofSeconds(2));
+        requestFactory.setReadTimeout(Duration.ofSeconds(4));
 
         this.restClient = RestClient.builder()
                 .baseUrl("https://api.open-meteo.com")
@@ -76,11 +85,20 @@ public class WeatherService {
             return Optional.of(toView(cached.get()));
         }
 
+        // A lookup for this area failed recently: skip it for a few minutes
+        // instead of making every request wait for the same timeout again.
+        Instant retryAfter = failedUntil.get(locationKey);
+        if (retryAfter != null && Instant.now().isBefore(retryAfter)) {
+            return Optional.empty();
+        }
+
         WeatherCache fresh;
         try {
             fresh = fetchFromOpenMeteo(roundedLat, roundedLon, locationKey, today);
+            failedUntil.remove(locationKey);
         } catch (RuntimeException e) {
             log.warn("Weather lookup failed for {}: {}", locationKey, e.getMessage());
+            failedUntil.put(locationKey, Instant.now().plus(FAILURE_BACKOFF));
             return Optional.empty();
         }
 

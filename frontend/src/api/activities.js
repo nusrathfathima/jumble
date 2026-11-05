@@ -1,7 +1,18 @@
 import { apiFetch } from './client'
 
-// One activity's full detail: summary, mess level, location, what it
-// needs, and its ordered steps.
+// Activity details never change while the app is open, so each one is
+// fetched once and remembered. The top-pick card and the "Let's start"
+// steps share the same request, so opening the steps is instant.
+const cache = new Map()
+
 export function getActivity(activityId) {
-  return apiFetch(`/api/activities/${activityId}`)
+  if (!cache.has(activityId)) {
+    const request = apiFetch(`/api/activities/${activityId}`).catch((err) => {
+      // Don't remember failures; let the next attempt try again.
+      cache.delete(activityId)
+      throw err
+    })
+    cache.set(activityId, request)
+  }
+  return cache.get(activityId)
 }

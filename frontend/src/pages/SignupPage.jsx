@@ -1,44 +1,57 @@
 import { useState } from 'react'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
+import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
-import Typography from '@mui/material/Typography'
-import TextField from '@mui/material/TextField'
-import Button from '@mui/material/Button'
-import Alert from '@mui/material/Alert'
 import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
 import { useAuth } from '../context/AuthContext'
 import { ApiError } from '../api/client'
 import { Sprout } from '../components/Garden'
+import { LabeledField, PasswordField, emailError } from '../components/FormFields'
 
 export function SignupPage() {
   const { signup } = useAuth()
   const navigate = useNavigate()
 
   const [form, setForm] = useState({ email: '', password: '', displayName: '' })
+  const [touched, setTouched] = useState({})
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const errors = {
+    email: emailError(form.email),
+    password: !form.password
+      ? 'Please choose a password.'
+      : form.password.length < 8
+        ? 'Use at least 8 characters.'
+        : null,
+  }
 
   function updateField(field) {
     return (event) => setForm((prev) => ({ ...prev, [field]: event.target.value }))
   }
 
+  function markTouched(field) {
+    return () => setTouched((prev) => ({ ...prev, [field]: true }))
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
+    setTouched({ email: true, password: true })
+    if (errors.email || errors.password) return
+
     setError(null)
     setSubmitting(true)
-
     try {
-      await signup(form)
+      await signup({ ...form, email: form.email.trim(), displayName: form.displayName.trim() })
       navigate('/')
     } catch (err) {
-      // ApiError carries the backend's actual message (e.g. "An account
-      // with this email already exists", or a validation message like
-      // "Password must be at least 8 characters"). Anything else — a
-      // network failure, the backend being unreachable — gets a generic
-      // fallback rather than an unhandled crash.
+      // The backend's own message, e.g. "An account with this email
+      // already exists"; anything unexpected gets a friendly fallback.
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)
@@ -46,16 +59,9 @@ export function SignupPage() {
   }
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        px: 2,
-        py: { xs: 6, sm: 10 },
-      }}
-    >
-      <Card sx={{ width: '100%', maxWidth: 420 }}>
-        <CardContent sx={{ p: 4 }}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', px: 2, py: { xs: 4, sm: 8 } }}>
+      <Card sx={{ width: '100%', maxWidth: 440 }}>
+        <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
             <Sprout size={76} waving />
           </Box>
@@ -63,48 +69,45 @@ export function SignupPage() {
             Create your account
           </Typography>
           <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 3 }}>
-            Start getting activity ideas tailored to your kids.
+            Start getting activity ideas made for your kids.
           </Typography>
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <Stack spacing={2}>
+          <Box component="form" onSubmit={handleSubmit} noValidate>
+            <Stack spacing={2.25}>
               {error && <Alert severity="error">{error}</Alert>}
 
-              <TextField
+              <LabeledField
                 id="displayName"
                 label="Your name"
-                type="text"
-                fullWidth
+                optional
                 value={form.displayName}
                 onChange={updateField('displayName')}
                 autoComplete="name"
               />
 
-              <TextField
+              <LabeledField
                 id="email"
                 label="Email"
                 type="email"
-                required
-                fullWidth
                 value={form.email}
                 onChange={updateField('email')}
+                onBlur={markTouched('email')}
                 autoComplete="email"
+                error={touched.email ? errors.email : null}
               />
 
-              <TextField
+              <PasswordField
                 id="password"
                 label="Password"
-                type="password"
-                required
-                fullWidth
-                inputProps={{ minLength: 8 }}
                 value={form.password}
                 onChange={updateField('password')}
+                onBlur={markTouched('password')}
                 autoComplete="new-password"
+                error={touched.password ? errors.password : null}
                 helperText="At least 8 characters"
               />
 
-              <Button type="submit" variant="contained" size="large" fullWidth disabled={submitting}>
+              <Button type="submit" variant="contained" size="large" fullWidth disabled={submitting} sx={{ height: 52, fontSize: 17 }}>
                 {submitting ? 'Creating account…' : 'Sign up'}
               </Button>
             </Stack>
@@ -112,7 +115,7 @@ export function SignupPage() {
 
           <Typography align="center" sx={{ mt: 3 }} color="text.secondary">
             Already have an account?{' '}
-            <Link component={RouterLink} to="/login" fontWeight={600}>
+            <Link component={RouterLink} to="/login" fontWeight={700}>
               Log in
             </Link>
           </Typography>

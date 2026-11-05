@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CircularProgress from '@mui/material/CircularProgress'
 import Stack from '@mui/material/Stack'
@@ -35,7 +36,7 @@ function StatTile({ value, label }) {
 
 /** The History tab: one child's numbers at a glance, then everything they've done. */
 export function HistoryPage() {
-  const { childList, loading, selectedChild, setSelectedChildId } = useAppData()
+  const { childList, loading, loadError, reloadFamily, selectedChild, setSelectedChildId } = useAppData()
   // Tagged with the child it belongs to, so switching children never
   // shows the previous child's numbers for a moment.
   const [loaded, setLoaded] = useState(null)
@@ -72,6 +73,10 @@ export function HistoryPage() {
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress size={28} />
         </Box>
+      ) : loadError ? (
+        <Alert severity="error" action={<Button color="inherit" size="small" onClick={reloadFamily}>Try again</Button>}>
+          {loadError}
+        </Alert>
       ) : childList.length === 0 ? (
         <Typography color="text.secondary">Add a child first, then the activities you rate will show up here.</Typography>
       ) : (

@@ -145,13 +145,28 @@ public class SuggestionController {
         List<ActivityRepository.SuggestionProjection> rows = activityRepository.findSuggestions(
                 childId, availableMinutes, maxMessLevel, effectiveLocation, repeatWindowDays);
 
+        // Every suggestion's tag ids, fetched in a single query up front
+        // rather than one query per suggestion.
+        Map<Long, List<Short>> tagIdsByActivity = rows.isEmpty()
+                ? Map.of()
+                : activityTagRepository
+                        .findWithTagsByActivityIdIn(rows.stream().map(ActivityRepository.SuggestionProjection::getId).toList())
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                at -> at.getActivity().getId(),
+                                Collectors.mapping(at -> at.getTag().getId(), Collectors.toList())));
+
         List<SuggestionView> views = rows.stream()
                 .map(row -> new SuggestionView(
                         row.getId(),
                         row.getTitle(),
                         row.getDurationMinutes(),
                         roundScore(row.getScore()),
-                        buildExplanation(row, weightsByTagId, availableMinutes, maxMessLevel)))
+                        buildExplanation(
+                                tagIdsByActivity.getOrDefault(row.getId(), List.of()),
+                                weightsByTagId,
+                                availableMinutes,
+                                maxMessLevel)))
                 .toList();
 
         // Only spend the extra query when there's actually nothing to
@@ -194,13 +209,13 @@ public class SuggestionController {
      * suggestion form, instead of being repeated on every card.
      */
     private String buildExplanation(
-            ActivityRepository.SuggestionProjection row,
+            List<Short> activityTagIds,
             Map<Short, ChildTagWeight> weightsByTagId,
             int availableMinutes,
             int maxMessLevel) {
 
-        List<String> matchedTagNames = activityTagRepository.findByActivityId(row.getId()).stream()
-                .map(at -> weightsByTagId.get(at.getTag().getId()))
+        List<String> matchedTagNames = activityTagIds.stream()
+                .map(weightsByTagId::get)
                 .filter(w -> w != null && w.getWeight() > 1.0f)
                 .sorted(Comparator.comparingDouble(ChildTagWeight::getWeight).reversed())
                 .limit(2)

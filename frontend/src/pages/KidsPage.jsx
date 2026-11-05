@@ -1,3 +1,4 @@
+import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
@@ -12,7 +13,7 @@ import { Sprout } from '../components/Garden'
 
 /** The Kids tab: every child with their age and interests, plus "Add a child". */
 export function KidsPage() {
-  const { childList, tags, loading, openAddChild } = useAppData()
+  const { childList, tags, loading, loadError, reloadFamily, openAddChild } = useAppData()
   const tagName = (slug) => tags.find((t) => t.slug === slug)?.displayName ?? slug
 
   return (
@@ -32,7 +33,13 @@ export function KidsPage() {
         </Box>
       )}
 
-      {!loading && childList.length === 0 && (
+      {loadError && (
+        <Alert severity="error" action={<Button color="inherit" size="small" onClick={reloadFamily}>Try again</Button>}>
+          {loadError}
+        </Alert>
+      )}
+
+      {!loading && !loadError && childList.length === 0 && (
         <Card>
           <Box sx={{ p: 3, textAlign: 'center' }}>
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>

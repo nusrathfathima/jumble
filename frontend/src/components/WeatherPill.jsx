@@ -1,48 +1,61 @@
 import Box from '@mui/material/Box'
 import ButtonBase from '@mui/material/ButtonBase'
 import Link from '@mui/material/Link'
+import Skeleton from '@mui/material/Skeleton'
 import Typography from '@mui/material/Typography'
 import { HEADING_FONT, SKY } from '../theme'
-import { LocationIcon } from './Icons'
+import { CloudIcon, LocationIcon } from './Icons'
 import { WeatherScene } from './Garden'
+
+const NUDGE = {
+  alignSelf: 'flex-start',
+  gap: 1,
+  px: 1.75,
+  py: 1,
+  borderRadius: 999,
+  border: '1.5px dashed',
+  borderColor: '#93AE9B',
+  bgcolor: 'background.paper',
+  color: 'primary.dark',
+  fontSize: 13,
+  fontWeight: 800,
+}
 
 /**
  * Today's weather as a little picture card: a rain cloud over the hills
- * on wet days, a smiling sun otherwise. With no location saved yet it is
- * a gentle nudge that opens Settings instead. Open-Meteo's free tier
- * requires a credit line (CC BY), so the small link under it stays.
+ * on wet days, a smiling sun otherwise. Every other state says so
+ * instead of silently showing nothing:
+ *   - still loading: a soft placeholder the same size as the card
+ *   - no location saved: a nudge that opens Settings
+ *   - lookup failed or weather unavailable: a "try again" button
+ * Open-Meteo's free tier requires a credit line (CC BY), so the small
+ * link under the card stays.
  */
-export function WeatherPill({ weather, onSetLocation }) {
+export function WeatherPill({ weather, status, onRetry, onSetLocation }) {
+  if (status === 'loading') {
+    return <Skeleton variant="rounded" height={88} sx={{ borderRadius: '22px' }} />
+  }
+
+  if (status === 'error' || (weather?.locationSet && !weather.available)) {
+    return (
+      <ButtonBase onClick={onRetry} sx={NUDGE}>
+        <CloudIcon size={18} />
+        The weather is taking a nap. Tap to try again
+      </ButtonBase>
+    )
+  }
+
   if (!weather) {
     return null
   }
 
   if (!weather.locationSet) {
     return (
-      <ButtonBase
-        onClick={onSetLocation}
-        sx={{
-          alignSelf: 'flex-start',
-          gap: 1,
-          px: 1.75,
-          py: 1,
-          borderRadius: 999,
-          border: '1.5px dashed',
-          borderColor: '#93AE9B',
-          bgcolor: 'background.paper',
-          color: 'primary.dark',
-          fontSize: 13,
-          fontWeight: 800,
-        }}
-      >
+      <ButtonBase onClick={onSetLocation} sx={NUDGE}>
         <LocationIcon size={18} />
         Add your location for rainy-day smarts
       </ButtonBase>
     )
-  }
-
-  if (!weather.available) {
-    return null
   }
 
   const wet = weather.outdoorFriendly === false

@@ -1,6 +1,7 @@
 package com.jumble.backend.repository;
 
 import com.jumble.backend.model.Completion;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +13,9 @@ import java.util.Optional;
 
 public interface CompletionRepository extends JpaRepository<Completion, Long> {
 
+    // Loads each completion's activity in the same query, so the history
+    // list doesn't make one extra query per row to get activity titles.
+    @EntityGraph(attributePaths = "activity")
     List<Completion> findByChildIdOrderByCompletedAtDesc(Long childId);
 
     // The four counts StatsController needs. Plain Spring-Data-derived

@@ -17,12 +17,15 @@ import { getActivity } from '../api/activities'
 import { ApiError } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppDataContext'
+import { keyframes } from '@mui/material/styles'
 import { BUTTER, GREEN_DARK, HEADING_FONT, MINT, PEACH, SKY, softColorFor } from '../theme'
 import { Sprout, TopPickScene } from '../components/Garden'
 import { ChildPicker } from '../components/ChildPicker'
 import { ChoiceTiles } from '../components/ChoiceTiles'
 import { WeatherPill } from '../components/WeatherPill'
 import { ActivityDialog } from '../components/ActivityDialog'
+import { SpinWheel } from '../components/SpinWheel'
+import { burstConfetti } from '../components/confetti'
 import { LOCATION_LABELS, MESS_LABELS, formatMinutes } from '../components/activityLabels'
 import {
   ActivityIcon,
@@ -63,6 +66,11 @@ const MESS_OPTIONS = [
   { value: 3, label: 'Go wild', Icon: SplatIcon, tone: PEACH },
 ]
 
+const popIn = keyframes`
+  from { transform: scale(.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+`
+
 function greeting() {
   const hour = new Date().getHours()
   if (hour < 12) return 'Good morning'
@@ -90,7 +98,7 @@ const PRESSABLE = {
  */
 export function TodayPage() {
   const { parent } = useAuth()
-  const { childList, loading, weather, setSelectedChildId, openAddChild, openSettings } = useAppData()
+  const { childList, loading, loadError, reloadFamily, weather, weatherStatus, reloadWeather, setSelectedChildId, openAddChild, openSettings } = useAppData()
 
   // Nothing is preselected: every step starts empty, and each one
   // unlocks once the step before it has an answer.
@@ -107,6 +115,9 @@ export function TodayPage() {
   // Keyed by activityId: 'submitting', 'done', or an error message.
   const [ratingStatus, setRatingStatus] = useState({})
   const [openActivityId, setOpenActivityId] = useState(null)
+  // Which idea is in the spotlight, and how it got there ('wheel' or
+  // 'tap'). Empty until the wheel lands or an idea is tapped.
+  const [pick, setPick] = useState(null)
 
   // Laptops and wider get the "board game" layout: four numbered step
   // cards in a row. Smaller screens keep the stacked form.
@@ -154,6 +165,7 @@ export function TodayPage() {
     setError(null)
     setSearching(true)
     setRatingStatus({})
+    setPick(null)
     try {
       const data = await getSuggestions(selectedChild.id, { availableMinutes, maxMessLevel, locationType })
       setResults({ ...data, childName: selectedChild.name, childId: selectedChild.id })
@@ -176,18 +188,16 @@ export function TodayPage() {
     }
   }
 
-  // "Shuffle" moves the current top pick to the end of the list, so the
-  // next idea gets the spotlight. Tapping an alternative makes it the
-  // top pick instead.
-  function shuffle() {
-    setResults((prev) => ({ ...prev, suggestions: [...prev.suggestions.slice(1), prev.suggestions[0]] }))
+  // Tapping an idea in the list puts it in the spotlight.
+  function promote(activityId) {
+    setPick({ id: activityId, by: 'tap' })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function promote(activityId) {
-    setResults((prev) => {
-      const chosen = prev.suggestions.find((s) => s.activityId === activityId)
-      return { ...prev, suggestions: [chosen, ...prev.suggestions.filter((s) => s.activityId !== activityId)] }
-    })
+  // The wheel landed: spotlight that idea, with confetti.
+  function handleLanded(activityId) {
+    setPick({ id: activityId, by: 'wheel' })
+    burstConfetti()
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -197,6 +207,10 @@ export function TodayPage() {
         <CircularProgress size={28} />
       </Box>
     )
+  }
+
+  if (loadError) {
+    return <LoadErrorCard message={loadError} onRetry={reloadFamily} />
   }
 
   if (childList.length === 0) {
@@ -221,56 +235,62 @@ export function TodayPage() {
   }
 
   if (results) {
-    const [top, ...others] = results.suggestions
+    const { suggestions } = results
+    // With a single idea there's nothing to spin for, so it's the pick.
+    const single = suggestions.length === 1
+    const top = single ? suggestions[0] : suggestions.find((s) => s.activityId === pick?.id) ?? null
+    const others = top ? suggestions.filter((s) => s.activityId !== top.activityId) : suggestions
+    const bubble = single ? 'My top pick!' : pick?.by === 'wheel' ? 'The wheel picked this!' : 'Great choice!'
     return (
       <Stack spacing={2} sx={{ maxWidth: 900, mx: 'auto' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
-            <IconButton onClick={() => setResults(null)} aria-label="Back to the form" sx={{ ml: -1, color: 'text.primary' }}>
+            <IconButton onClick={() => { setResults(null); setPick(null) }} aria-label="Back to the form" sx={{ ml: -1, color: 'text.primary' }}>
               <BackIcon size={22} strokeWidth={2.5} />
             </IconButton>
             <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: { xs: 22, sm: 26, lg: 34 }, fontWeight: 800, lineHeight: 1.15 }}>
               Ideas for {results.childName}
             </Typography>
           </Box>
-          {results.suggestions.length > 1 && (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={shuffle}
-              startIcon={<DiceIcon size={16} strokeWidth={2.2} />}
-              sx={{ flexShrink: 0, borderRadius: 999, bgcolor: 'background.paper' }}
-            >
-              Shuffle
-            </Button>
-          )}
         </Box>
 
         {results.weatherWarning && <Alert severity="warning">{results.weatherWarning}</Alert>}
 
-        {top ? (
+        {suggestions.length === 0 ? (
+          <NoResults nearMisses={results.nearMisses} onBack={() => setResults(null)} />
+        ) : (
           <>
-            <TopPickCard
-              suggestion={top}
-              rated={ratingStatus[top.activityId] === 'done'}
-              onStart={() => setOpenActivityId(top.activityId)}
-            />
-
-            {others.length > 0 && (
-              <Box>
-                <Typography component="h2" sx={{ fontFamily: HEADING_FONT, fontSize: 17, fontWeight: 800, mb: 1 }}>
-                  Or try one of these
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 1.5 }}>
-                  {others.map((s) => (
-                    <AlternativeRow key={s.activityId} suggestion={s} onClick={() => promote(s.activityId)} />
-                  ))}
-                </Box>
+            {top && (
+              <Box key={top.activityId} sx={{ animation: `${popIn} .5s cubic-bezier(.3,1.5,.5,1) both`, '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
+                <TopPickCard
+                  suggestion={top}
+                  bubble={bubble}
+                  rated={ratingStatus[top.activityId] === 'done'}
+                  onStart={() => setOpenActivityId(top.activityId)}
+                />
               </Box>
             )}
+
+            {/* The wheel stays in the same place in the page, so it keeps
+                its position between spins instead of snapping back. */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: single ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)' }, gap: 2, alignItems: 'start' }}>
+              {!single && (
+                <SpinWheel suggestions={suggestions} childName={results.childName} hasPick={Boolean(top)} onLanded={handleLanded} />
+              )}
+              {others.length > 0 && (
+                <Box>
+                  <Typography component="h2" sx={{ fontFamily: HEADING_FONT, fontSize: 17, fontWeight: 800, mb: 1 }}>
+                    {top ? 'Or try one of these' : 'Or pick one yourself'}
+                  </Typography>
+                  <Stack spacing={1.25}>
+                    {others.map((s) => (
+                      <AlternativeRow key={s.activityId} suggestion={s} onClick={() => promote(s.activityId)} />
+                    ))}
+                  </Stack>
+                </Box>
+              )}
+            </Box>
           </>
-        ) : (
-          <NoResults nearMisses={results.nearMisses} onBack={() => setResults(null)} />
         )}
 
         <ActivityDialog
@@ -384,7 +404,7 @@ export function TodayPage() {
         </Box>
 
         <Box sx={{ width: 640 }}>
-          <WeatherPill weather={weather} onSetLocation={openSettings} />
+          <WeatherPill weather={weather} status={weatherStatus} onRetry={reloadWeather} onSetLocation={openSettings} />
         </Box>
 
         <Box sx={{ position: 'relative', width: '100%', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 2.5, pt: 3 }}>
@@ -419,7 +439,7 @@ export function TodayPage() {
         <Sprout size={72} waving />
       </Box>
 
-      <WeatherPill weather={weather} onSetLocation={openSettings} />
+      <WeatherPill weather={weather} status={weatherStatus} onRetry={reloadWeather} onSetLocation={openSettings} />
 
       {steps}
 
@@ -595,12 +615,33 @@ function Step({ id, n, title, tone, wide, locked, active, done, hint, children }
   )
 }
 
-function TopPickCard({ suggestion, rated, onStart }) {
+function LoadErrorCard({ message, onRetry }) {
+  return (
+    <Card sx={{ mt: 2, maxWidth: 560, mx: 'auto' }}>
+      <Box sx={{ p: { xs: 3, sm: 4 }, textAlign: 'center' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+          <Sprout size={72} />
+        </Box>
+        <Typography variant="h5" sx={{ mb: 1 }}>
+          Hmm, that didn&rsquo;t load
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 2.5 }}>
+          {message}
+        </Typography>
+        <Button variant="contained" size="large" onClick={onRetry} sx={PRESSABLE}>
+          Try again
+        </Button>
+      </Box>
+    </Card>
+  )
+}
+
+function TopPickCard({ suggestion, bubble, rated, onStart }) {
   const [loaded, setLoaded] = useState(null)
 
   // Mess level and location aren't part of the suggestion itself, so the
   // card fetches the activity's detail to show them. Results are tagged
-  // with the activity id, so a shuffle never shows the previous card's
+  // with the activity id, so switching ideas never shows the previous card's
   // details for a moment.
   useEffect(() => {
     let cancelled = false
@@ -639,7 +680,7 @@ function TopPickCard({ suggestion, rated, onStart }) {
               boxShadow: '0 3px 10px rgba(22, 48, 31, 0.10)',
             }}
           >
-            My top pick!
+            {bubble}
           </Box>
         </Box>
       </Box>

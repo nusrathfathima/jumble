@@ -1,15 +1,28 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Box from '@mui/material/Box'
+import CircularProgress from '@mui/material/CircularProgress'
 import { SideScenery } from './components/Garden'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { TopBar } from './components/TopBar'
-import { AppShell } from './components/AppShell'
-import { TodayPage } from './pages/TodayPage'
-import { KidsPage } from './pages/KidsPage'
-import { HistoryPage } from './pages/HistoryPage'
-import { LoginPage } from './pages/LoginPage'
-import { SignupPage } from './pages/SignupPage'
+import { WakeUpNotice } from './components/WakeUpNotice'
+
+// Each page is its own download, fetched only when first visited, so
+// the first load (usually the login page) is smaller and faster.
+const AppShell = lazy(() => import('./components/AppShell').then((m) => ({ default: m.AppShell })))
+const TodayPage = lazy(() => import('./pages/TodayPage').then((m) => ({ default: m.TodayPage })))
+const KidsPage = lazy(() => import('./pages/KidsPage').then((m) => ({ default: m.KidsPage })))
+const HistoryPage = lazy(() => import('./pages/HistoryPage').then((m) => ({ default: m.HistoryPage })))
+const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })))
+const SignupPage = lazy(() => import('./pages/SignupPage').then((m) => ({ default: m.SignupPage })))
+
+function PageLoading() {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+      <CircularProgress size={28} />
+    </Box>
+  )
+}
 
 function App() {
   // Lifted up here, since the button that opens Settings lives in TopBar,
@@ -23,6 +36,8 @@ function App() {
       <Box sx={{ position: 'relative', zIndex: 1 }}>
       {/* Above the router, so "Jumble" shows the same way on every page. */}
       <TopBar onOpenSettings={() => setSettingsOpen(true)} />
+      <WakeUpNotice />
+      <Suspense fallback={<PageLoading />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
@@ -43,6 +58,7 @@ function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
       </Box>
     </>
   )

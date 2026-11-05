@@ -7,8 +7,12 @@ import { GREEN, GREEN_DARK, LEAF, LEAF_LIGHT, SUN } from '../theme'
 
 const INK = '#16301F'
 
-/** Sprout: a round little seedling with two leaves. `waving` raises one arm. */
-export function Sprout({ size = 64, waving = false, style }) {
+/**
+ * Sprout: a round little seedling with two leaves. `waving` raises one arm.
+ * `face` changes the expression: 'happy' (default), 'star' (star eyes and a
+ * big grin, for cheering), 'ok' (a small smile) or 'sleepy' (closed eyes).
+ */
+export function Sprout({ size = 64, waving = false, face = 'happy', style }) {
   return (
     <svg
       aria-hidden="true"
@@ -23,13 +27,10 @@ export function Sprout({ size = 64, waving = false, style }) {
       <path d="M36 12 C 44 12, 52 6, 52 0 C 43 -1, 37 5, 36 12 Z" fill={GREEN} />
       <circle cx="36" cy="44" r="25" fill={LEAF} />
       <ellipse cx="36" cy="50" rx="17" ry="13" fill={LEAF_LIGHT} />
-      <ellipse cx="28" cy="40" rx="3" ry="3.6" fill={INK} />
-      <ellipse cx="44" cy="40" rx="3" ry="3.6" fill={INK} />
-      <circle cx="29" cy="38.8" r="1" fill="#FFFFFF" />
-      <circle cx="45" cy="38.8" r="1" fill="#FFFFFF" />
+      <SproutEyes face={face} />
       <circle cx="22" cy="48" r="3.4" fill="#FFB38A" />
       <circle cx="50" cy="48" r="3.4" fill="#FFB38A" />
-      <path d="M30 49 Q36 55 42 49" stroke={INK} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+      <SproutMouth face={face} />
       {waving && (
         <>
           <path d="M58 44 C 66 38, 68 30, 66 24" stroke={LEAF} strokeWidth="6" fill="none" strokeLinecap="round" />
@@ -38,6 +39,39 @@ export function Sprout({ size = 64, waving = false, style }) {
       )}
     </svg>
   )
+}
+
+const STAR = 'l1.6 3.4 3.6.4-2.7 2.4.8 3.6L{x} 43l-3.3 1.8.8-3.6-2.7-2.4 3.6-.4z'
+
+function SproutEyes({ face }) {
+  if (face === 'star') {
+    return <path d={['M28 35' + STAR.replace('{x}', '28'), 'M44 35' + STAR.replace('{x}', '44')].join(' ')} fill={INK} />
+  }
+  if (face === 'sleepy') {
+    return <path d="M24 41 q4 3 8 0 M40 41 q4 3 8 0" stroke={INK} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+  }
+  return (
+    <>
+      <ellipse cx="28" cy="40" rx="3" ry="3.6" fill={INK} />
+      <ellipse cx="44" cy="40" rx="3" ry="3.6" fill={INK} />
+      <circle cx="29" cy="38.8" r="1" fill="#FFFFFF" />
+      <circle cx="45" cy="38.8" r="1" fill="#FFFFFF" />
+    </>
+  )
+}
+
+function SproutMouth({ face }) {
+  if (face === 'star') {
+    return (
+      <>
+        <path d="M28 48 Q36 60 44 48 Z" fill={INK} />
+        <path d="M31 53 Q36 57 41 53" fill="#FF8FA3" />
+      </>
+    )
+  }
+  if (face === 'sleepy') return <ellipse cx="36" cy="51" rx="3" ry="2.4" fill={INK} />
+  if (face === 'ok') return <path d="M31 50 Q36 53 41 50" stroke={INK} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+  return <path d="M30 49 Q36 55 42 49" stroke={INK} strokeWidth="2.4" fill="none" strokeLinecap="round" />
 }
 
 /** A tiny leaf that grows on the selected child's avatar. */
