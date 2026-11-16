@@ -123,24 +123,50 @@ export function AvatarSprout({ style }) {
   )
 }
 
+// One flag swings on the string like it's caught by a breeze.
+const flagSwing = keyframes`
+  0%, 100% { transform: rotate(-9deg); }
+  50% { transform: rotate(9deg); }
+`
+
 /**
- * Party bunting hanging under the header. A repeating SVG pattern, so it
- * fills any screen width without stretching the flags.
+ * Party bunting hanging along the top of the banner. Each flag sways on
+ * its own, a moment after the flag to its left, so a gentle breeze seems
+ * to travel along the string from left to right. Enough flags are drawn
+ * for very wide screens; the banner hides whatever doesn't fit.
  */
 export function Bunting({ stringColor = '#B9CDBF' }) {
   const colors = [LEAF, '#FFB38A', '#FFD66B', '#9CCBF2']
+  const flags = Array.from({ length: 72 }, (_, i) => i)
   return (
-    <svg aria-hidden="true" focusable="false" width="100%" height="20" style={{ display: 'block' }}>
-      <defs>
-        <pattern id="jumble-bunting" width="152" height="20" patternUnits="userSpaceOnUse">
-          <line x1="0" y1="2" x2="152" y2="2" stroke={stringColor} strokeWidth="1.2" />
-          {colors.map((c, i) => (
-            <path key={c} d={`M${10 + i * 38} 2 L${28 + i * 38} 2 L${19 + i * 38} 17 Z`} fill={c} />
-          ))}
-        </pattern>
-      </defs>
-      <rect width="100%" height="20" fill="url(#jumble-bunting)" />
-    </svg>
+    <Box
+      component="svg"
+      aria-hidden="true"
+      focusable="false"
+      width="100%"
+      height="24"
+      sx={{
+        display: 'block',
+        '& .flag': {
+          transformBox: 'fill-box',
+          transformOrigin: '50% 0',
+          animation: `${flagSwing} 2.6s ease-in-out infinite`,
+        },
+        '@media (prefers-reduced-motion: reduce)': { '& .flag': { animation: 'none' } },
+      }}
+    >
+      <line x1="0" y1="2" x2="100%" y2="2" stroke={stringColor} strokeWidth="1.2" />
+      {flags.map((i) => (
+        <path
+          key={i}
+          className="flag"
+          d={`M${10 + i * 38} 2 L${28 + i * 38} 2 L${19 + i * 38} 17 Z`}
+          fill={colors[i % colors.length]}
+          // Each flag starts its swing a little later than the one before.
+          style={{ animationDelay: `${(i * 0.09 - 8).toFixed(2)}s` }}
+        />
+      ))}
+    </Box>
   )
 }
 
@@ -279,109 +305,10 @@ export function GardenHills() {
   )
 }
 
-function Petals() {
-  return [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((a) => (
-    <ellipse key={a} cx="0" cy="-17" rx="6" ry="11" fill={SUN} transform={`rotate(${a})`} />
-  ))
-}
-
-function Tulip({ x, y, color, s = 1 }) {
-  return (
-    <g transform={`translate(${x} ${y}) scale(${s})`}>
-      <path d="M0 0 V60" stroke="#4E9A69" strokeWidth="3.5" strokeLinecap="round" />
-      <path d="M0 44 C -14 38, -18 26, -14 20 C -6 24, -1 34, 0 44 Z" fill={LEAF_LIGHT} />
-      <path d="M-11 -2 L-11 -16 L-4 -9 L0 -18 L4 -9 L11 -16 L11 -2 C 11 8, -11 8, -11 -2 Z" fill={color} />
-    </g>
-  )
-}
-
-function Butterfly({ x, y, c1, c2, r = 0, path = 'flutterA' }) {
-  return (
-    <g transform={`translate(${x} ${y})`}>
-      <g className={`garden-move ${path}`}>
-      <g transform={`rotate(${r})`}>
-      <g className="garden-move garden-flap">
-      <ellipse cx="-9" cy="-6" rx="9" ry="8" fill={c1} />
-      <ellipse cx="9" cy="-6" rx="9" ry="8" fill={c1} />
-      <ellipse cx="-7" cy="7" rx="6" ry="6" fill={c2} />
-      <ellipse cx="7" cy="7" rx="6" ry="6" fill={c2} />
-      </g>
-      <rect x="-1.6" y="-10" width="3.2" height="22" rx="1.6" fill={INK} />
-      <path d="M0 -10 Q-4 -18 -7 -20 M0 -10 Q4 -18 7 -20" stroke={INK} strokeWidth="1.4" fill="none" />
-      </g>
-      </g>
-    </g>
-  )
-}
-
-function Grass({ from, to, y }) {
-  const blades = []
-  for (let x = from; x < to; x += 12) {
-    blades.push(<path key={x} d={`M${x} ${y} Q${x + 3} ${y - 16} ${x + 7} ${y - 22} Q${x + 5} ${y - 10} ${x + 10} ${y}`} fill={LEAF} />)
-  }
-  return blades
-}
-
-// Slow, gentle movement for the background garden. Everything uses
-// transforms only, so it stays smooth on cheaper phones, and all of it
-// stops for people who ask their device for reduced motion.
+// The confetti dots drift slowly upwards, one tile height per loop, so
+// the loop is seamless.
 const driftA = keyframes`to { transform: translateY(-280px); }`
 const driftB = keyframes`to { transform: translateY(-370px); }`
-const flutterA = keyframes`
-  0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(34px, -46px); }
-  50% { transform: translate(8px, -96px); }
-  75% { transform: translate(-18px, -40px); }
-`
-const flutterB = keyframes`
-  0%, 100% { transform: translate(0, 0); }
-  30% { transform: translate(-40px, 34px); }
-  60% { transform: translate(-14px, 86px); }
-  80% { transform: translate(10px, 40px); }
-`
-const flap = keyframes`to { transform: scaleX(0.4); }`
-const sway = keyframes`
-  0%, 100% { transform: rotate(-6deg); }
-  50% { transform: rotate(7deg) translateY(-8px); }
-`
-const crawl = keyframes`
-  0% { transform: translateX(0); }
-  45% { transform: translateX(-120px); }
-  50% { transform: translateX(-120px) scaleX(-1); }
-  95% { transform: translateX(0) scaleX(-1); }
-  100% { transform: translateX(0); }
-`
-const floatAcross = keyframes`
-  from { transform: translateX(-200px); }
-  to { transform: translateX(calc(100vw + 40px)); }
-`
-const nod = keyframes`
-  0%, 100% { transform: rotate(-2deg); }
-  50% { transform: rotate(2deg); }
-`
-
-const MOTION = {
-  '& .garden-move': { transformBox: 'fill-box', transformOrigin: 'center' },
-  '& .flutterA': { animation: `${flutterA} 16s ease-in-out infinite` },
-  '& .flutterB': { animation: `${flutterB} 19s ease-in-out infinite` },
-  '& .garden-flap': { animation: `${flap} .35s ease-in-out infinite alternate` },
-  '& .garden-sway': { transformOrigin: 'top center', animation: `${sway} 6s ease-in-out infinite` },
-  '& .garden-crawl': { animation: `${crawl} 50s linear infinite` },
-  '& .garden-nod': { transformOrigin: 'bottom center', animation: `${nod} 5s ease-in-out infinite` },
-  '@media (prefers-reduced-motion: reduce)': { '& *': { animation: 'none !important' } },
-}
-
-function DriftingCloud({ top, width, duration, delay, opacity = 1 }) {
-  return (
-    <Box
-      component="svg"
-      viewBox="0 0 150 60"
-      sx={{ position: 'absolute', left: 0, top, width, opacity, animation: `${floatAcross} ${duration}s linear ${delay}s infinite` }}
-    >
-      <path d="M20 50 C 0 50, 0 26, 22 26 C 24 8, 52 4, 62 20 C 72 4, 104 6, 106 26 C 130 22, 140 50, 116 50 Z" fill="#DCEBF7" />
-    </Box>
-  )
-}
 
 /**
  * The page's background: confetti dots that drift slowly upwards, on
@@ -409,73 +336,3 @@ export function MovingDots() {
   )
 }
 
-/**
- * Garden scenery in the side space on wide screens: a sunflower and tulips
- * on the left, a kite and a tree on the right, with clouds floating past,
- * butterflies fluttering, the kite swaying and a ladybug crawling.
- */
-export function SideScenery() {
-  return (
-    <Box
-      aria-hidden="true"
-      sx={{ display: { xs: 'none', lg: 'block' }, position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden', ...MOTION }}
-    >
-      <DriftingCloud top={230} width={130} duration={95} delay={-30} opacity={0.75} />
-      <DriftingCloud top={520} width={100} duration={130} delay={-80} opacity={0.6} />
-      <svg width="240" height="420" viewBox="0 0 240 420" style={{ position: 'absolute', left: 0, bottom: 0, overflow: 'visible' }}>
-        <g transform="translate(80 190)">
-          <g className="garden-move garden-nod">
-            <path d="M0 0 V230" stroke="#4E9A69" strokeWidth="5" strokeLinecap="round" />
-            <path d="M0 90 C -26 80, -36 60, -30 50 C -12 54, -2 70, 0 90 Z" fill={LEAF} />
-            <path d="M0 130 C 24 120, 34 104, 30 92 C 12 96, 2 112, 0 130 Z" fill={LEAF} />
-            <Petals />
-            <circle r="12" fill="#8A5A2B" />
-            <circle r="5" cx="-3" cy="-3" fill="#A87440" />
-          </g>
-        </g>
-        <Tulip x={140} y={346} color="#FF9ACB" />
-        <Tulip x={36} y={352} color="#9CCBF2" s={0.9} />
-        <path d="M0 420 C 60 390, 160 394, 230 420 Z" fill={LEAF_LIGHT} />
-        <Grass from={0} to={230} y={420} />
-        <g transform="translate(190 404)">
-          {/* Head on the left, so it walks left first, then turns round. */}
-          <g className="garden-move garden-crawl">
-            <ellipse rx="11" ry="9" fill="#E5484D" />
-            <path d="M0 -9 V9" stroke="#3A1F1F" strokeWidth="1.5" />
-            <circle cx="-12" cy="0" r="5" fill="#3A1F1F" />
-            <circle cx="-4" cy="-3" r="2" fill="#3A1F1F" />
-            <circle cx="5" cy="3" r="2" fill="#3A1F1F" />
-          </g>
-        </g>
-        <Butterfly x={60} y={70} c1="#FFB38A" c2="#FFD66B" r={-12} path="flutterA" />
-      </svg>
-
-      <svg width="240" height="460" viewBox="0 0 240 460" style={{ position: 'absolute', right: 0, bottom: 0, overflow: 'visible' }}>
-        <g transform="translate(150 60)">
-          <g className="garden-move garden-sway">
-            <path d="M0 -40 L30 0 L0 50 L-30 0 Z" fill="#FFB38A" />
-            <path d="M0 -40 L-30 0 L0 0 Z" fill="#FF9466" />
-            <path d="M0 0 L30 0 L0 50 Z" fill="#FFC9A8" />
-            <path d="M0 -40 L0 50 M-30 0 L30 0" stroke="#FFFFFF" strokeWidth="2" />
-            <path d="M0 50 C 14 80, -14 110, 4 140" stroke="#93AE9B" strokeWidth="1.6" fill="none" />
-            <path d="M0 88 L12 96 L12 88 L0 96 Z" fill="#9CCBF2" />
-            <path d="M-6 118 L6 126 L6 118 L-6 126 Z" fill="#FFD66B" />
-          </g>
-        </g>
-        <Butterfly x={70} y={160} c1="#9CCBF2" c2="#EFE7FF" r={14} path="flutterB" />
-        <g transform="translate(150 330)">
-          <rect x="-9" y="20" width="18" height="90" rx="6" fill="#A87440" />
-          <circle cx="0" cy="0" r="46" fill={LEAF} />
-          <circle cx="-30" cy="18" r="30" fill="#5FAE80" />
-          <circle cx="30" cy="16" r="32" fill="#5FAE80" />
-          <circle cx="-14" cy="-14" r="6" fill="#FF8A7A" />
-          <circle cx="18" cy="-4" r="6" fill="#FF8A7A" />
-          <circle cx="-2" cy="20" r="6" fill="#FF8A7A" />
-        </g>
-        <path d="M0 460 C 70 432, 180 426, 240 454 V460 Z" fill={LEAF_LIGHT} />
-        <Grass from={0} to={240} y={460} />
-        <Tulip x={40} y={398} color="#FFD66B" s={0.9} />
-      </svg>
-    </Box>
-  )
-}

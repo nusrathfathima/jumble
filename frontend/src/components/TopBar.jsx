@@ -3,11 +3,13 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import ButtonBase from '@mui/material/ButtonBase'
 import Menu from '@mui/material/Menu'
+import Tooltip from '@mui/material/Tooltip'
+import { keyframes } from '@mui/material/styles'
 import Typography from '@mui/material/Typography'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { GREEN, HEADING_FONT } from '../theme'
-import { Bunting, Cloud, GardenHills, SunFace } from './Garden'
+import { Bunting, Cloud, GardenHills } from './Garden'
 import { ChevronDownIcon, SettingsIcon } from './Icons'
 
 const PILL = {
@@ -24,10 +26,80 @@ const PILL = {
   '&.Mui-focusVisible': { outline: '3px solid #FFFFFF', outlineOffset: 2 },
 }
 
+// Your portfolio, linked from the top-left of the banner. Save your
+// portfolio icon as frontend/public/portfolio-icon.png; until that file
+// exists, a small "NF" badge shows instead.
+const PORTFOLIO_URL = 'https://nusrathfathima.com'
+const PORTFOLIO_ICON = '/portfolio-icon.png'
+
+// Clouds drift slowly across the banner from left to right.
+const drift = keyframes`
+  from { transform: translateX(-120px); }
+  to { transform: translateX(100vw); }
+`
+
+function DriftingBannerCloud({ top, width, opacity, seconds, delay }) {
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        left: 0,
+        top,
+        opacity,
+        animation: `${drift} ${seconds}s linear ${delay}s infinite`,
+        '@media (prefers-reduced-motion: reduce)': { animation: 'none', left: '30%' },
+      }}
+    >
+      <Cloud width={width} />
+    </Box>
+  )
+}
+
+function PortfolioLink() {
+  const [iconMissing, setIconMissing] = useState(false)
+  return (
+    <Tooltip title="See my other projects">
+      <Box
+        component="a"
+        href={PORTFOLIO_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Nusrath Fathima's portfolio (opens in a new tab)"
+        sx={{
+          justifySelf: 'start',
+          width: { xs: 40, md: 48 },
+          height: { xs: 40, md: 48 },
+          borderRadius: '50%',
+          bgcolor: '#FFFFFF',
+          border: '3px solid rgba(255, 255, 255, 0.9)',
+          boxShadow: '0 3px 0 rgba(22, 48, 31, 0.2)',
+          overflow: 'hidden',
+          textDecoration: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'transform 150ms ease',
+          '&:hover': { transform: 'scale(1.08) rotate(-4deg)' },
+          '&:focus-visible': { outline: '3px solid #FFD66B', outlineOffset: 3 },
+        }}
+      >
+        {iconMissing ? (
+          <Typography component="span" sx={{ fontFamily: HEADING_FONT, fontWeight: 800, fontSize: { xs: 15, md: 17 }, color: GREEN }}>
+            NF
+          </Typography>
+        ) : (
+          <Box component="img" src={PORTFOLIO_ICON} alt="" onError={() => setIconMissing(true)} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        )}
+      </Box>
+    </Tooltip>
+  )
+}
+
 /**
- * The green garden banner at the top of every screen: bunting, a smiling
- * sun, clouds and rolling hills that flow down into the page. "Jumble"
- * sits in the middle. Signed in, your name sits on the right and opens
+ * The green garden banner at the top of every screen: bunting swaying in
+ * a breeze, clouds drifting past and rolling hills that flow down into
+ * the page. "Jumble" sits in the middle, with a link to your portfolio
+ * on the left. Signed in, your name sits on the right and opens
  * a small menu with Settings and Log out; signed out, a Log in / Sign up
  * shortcut sits there instead. The Today / Kids / History tabs are not
  * part of the banner; they sit just below it (see BottomNav).
@@ -54,18 +126,12 @@ export function TopBar({ onOpenSettings }) {
       component="header"
       sx={{ position: 'relative', height: { xs: 132, md: 172 }, bgcolor: GREEN, overflow: 'hidden' }}
     >
-      {/* Decoration only: bunting, sun, clouds, hills. */}
+      {/* Decoration only: bunting, clouds, hills. */}
       <Box aria-hidden="true" sx={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         <Bunting stringColor="rgba(255, 255, 255, 0.7)" />
-        <Box sx={{ position: 'absolute', left: { xs: 14, md: 56 }, top: { xs: 30, md: 50 }, display: { xs: 'none', sm: 'block' } }}>
-          <SunFace size={34} />
-        </Box>
-        <Box sx={{ position: 'absolute', left: '14%', top: 34, opacity: 0.16, display: { xs: 'none', md: 'block' } }}>
-          <Cloud width={64} />
-        </Box>
-        <Box sx={{ position: 'absolute', left: '68%', top: 28, opacity: 0.14, display: { xs: 'none', md: 'block' } }}>
-          <Cloud width={50} />
-        </Box>
+        <DriftingBannerCloud top={30} width={64} opacity={0.22} seconds={70} delay={-10} />
+        <DriftingBannerCloud top={58} width={46} opacity={0.18} seconds={95} delay={-55} />
+        <DriftingBannerCloud top={22} width={52} opacity={0.16} seconds={120} delay={-90} />
         <GardenHills />
       </Box>
 
@@ -80,7 +146,7 @@ export function TopBar({ onOpenSettings }) {
           pt: { xs: 1.5, md: 1 },
         }}
       >
-        <Box />
+        <PortfolioLink />
 
         <Typography
           component="div"

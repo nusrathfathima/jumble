@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import Typography from '@mui/material/Typography'
@@ -63,7 +64,8 @@ function Flower({ x, rating, color, title, delay }) {
  * long-press a flower to see which activity it was.
  */
 export function HistoryGarden({ completions, childName }) {
-  const now = new Date()
+  // Read the clock once, when the garden first appears.
+  const [now] = useState(() => new Date())
   const thisMonth = completions
     .filter((c) => {
       const d = new Date(c.completedAt)

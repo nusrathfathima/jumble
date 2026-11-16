@@ -2,7 +2,8 @@ import { lazy, Suspense, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
-import { MovingDots, SideScenery } from './components/Garden'
+import { MovingDots } from './components/Garden'
+import { LivingGarden } from './components/LivingGarden'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { TopBar } from './components/TopBar'
 import { WakeUpNotice } from './components/WakeUpNotice'
@@ -31,9 +32,9 @@ function App() {
 
   return (
     <>
-      {/* Garden scenery in the side space on wide screens, behind everything. */}
+      {/* The moving garden and drifting dots, behind everything. */}
       <MovingDots />
-      <SideScenery />
+      <LivingGarden />
       <Box sx={{ position: 'relative', zIndex: 1 }}>
       {/* Above the router, so "Jumble" shows the same way on every page. */}
       <TopBar onOpenSettings={() => setSettingsOpen(true)} />

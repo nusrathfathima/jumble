@@ -394,17 +394,19 @@ export function TodayPage() {
   if (isWide) {
     return (
       <Stack spacing={3} sx={{ alignItems: 'center', pt: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography sx={{ fontSize: 16, fontWeight: 700, color: 'text.secondary' }}>
-              {greeting()}
-              {firstName ? `, ${firstName}` : ''}
-            </Typography>
-            <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: 44, fontWeight: 800, lineHeight: 1.1 }}>
-              What should we do today?
-            </Typography>
+        {/* The words are centred on the page; Sprout hangs off to the
+            right of them, so it doesn't push them off-centre. */}
+        <Box sx={{ position: 'relative', textAlign: 'center' }}>
+          <Typography sx={{ fontSize: 16, fontWeight: 700, color: 'text.secondary' }}>
+            {greeting()}
+            {firstName ? `, ${firstName}` : ''}
+          </Typography>
+          <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: 44, fontWeight: 800, lineHeight: 1.1 }}>
+            What should we do today?
+          </Typography>
+          <Box sx={{ position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)', ml: 2 }}>
+            <Sprout size={84} waving watch />
           </Box>
-          <Sprout size={84} waving watch />
         </Box>
 
         <Box sx={{ width: 640 }}>
@@ -430,17 +432,16 @@ export function TodayPage() {
 
   return (
     <Stack spacing={2.5}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 1 }}>
-        <Box sx={{ flex: 1 }}>
-          <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'text.secondary' }}>
-            {greeting()}
-            {firstName ? `, ${firstName}` : ''}
-          </Typography>
-          <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: { xs: 27, sm: 36 }, fontWeight: 800, lineHeight: 1.15 }}>
-            What should we do today?
-          </Typography>
-        </Box>
-        <Sprout size={72} waving watch />
+      {/* Centred, with Sprout waving just above the words. */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 0.5, pt: 1 }}>
+        <Sprout size={64} waving watch />
+        <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'text.secondary' }}>
+          {greeting()}
+          {firstName ? `, ${firstName}` : ''}
+        </Typography>
+        <Typography component="h1" sx={{ fontFamily: HEADING_FONT, fontSize: { xs: 27, sm: 36 }, fontWeight: 800, lineHeight: 1.15 }}>
+          What should we do today?
+        </Typography>
       </Box>
 
       <WeatherPill weather={weather} status={weatherStatus} onRetry={reloadWeather} onSetLocation={openSettings} />

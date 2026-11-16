@@ -29,21 +29,21 @@ const ROSE = { bg: '#FFE3EC', fg: '#A3204F' }
 export const WORDMARK_GREEN = GREEN
 export const WORDMARK_PEACH = '#E0703F'
 
-// Subtle confetti across the whole page background: small, pale dots in
-// the brand tints. Two tile sizes overlap so the pattern never looks
+// Confetti across the whole page background: small dots in the brand
+// colours, bright enough to see but still light. Two tile sizes overlap so the pattern never looks
 // like an obvious grid.
 const dot = (x, y, r, rgba) => `radial-gradient(circle at ${x}px ${y}px, ${rgba} ${r}px, transparent ${r + 0.6}px)`
 export const CONFETTI_A = [
-  dot(30, 40, 3.5, 'rgba(124, 197, 154, 0.38)'),
-  dot(190, 90, 3, 'rgba(255, 179, 138, 0.42)'),
-  dot(110, 210, 4, 'rgba(255, 214, 107, 0.42)'),
-  dot(250, 250, 3, 'rgba(156, 203, 242, 0.45)'),
+  dot(30, 40, 3.5, 'rgba(92, 184, 128, 0.50)'),
+  dot(190, 90, 3, 'rgba(255, 150, 100, 0.52)'),
+  dot(110, 210, 4, 'rgba(255, 200, 60, 0.55)'),
+  dot(250, 250, 3, 'rgba(110, 180, 240, 0.55)'),
 ]
 export const CONFETTI_B = [
-  dot(70, 130, 3, 'rgba(255, 179, 138, 0.35)'),
-  dot(300, 40, 3.5, 'rgba(156, 203, 242, 0.40)'),
-  dot(220, 320, 3, 'rgba(124, 197, 154, 0.35)'),
-  dot(340, 190, 2.5, 'rgba(255, 214, 107, 0.45)'),
+  dot(70, 130, 3, 'rgba(255, 150, 100, 0.45)'),
+  dot(300, 40, 3.5, 'rgba(110, 180, 240, 0.50)'),
+  dot(220, 320, 3, 'rgba(92, 184, 128, 0.45)'),
+  dot(340, 190, 2.5, 'rgba(255, 200, 60, 0.55)'),
 ]
 
 export const theme = createTheme({
