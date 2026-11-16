@@ -12,9 +12,12 @@
 //   - compact (phones and tablets): just one butterfly drifting about, so
 //     small screens never feel busy.
 //
-// Everything is drawn in a 1200 x 560 "design" space. The left group sits
-// at the left edge of the window and the right group is shifted so its
-// right edge (x = 1200) lines up with the right edge of the window.
+// The svg covers the whole window. The garden itself is drawn in a
+// 1200 x 560 "design" space: the left group sits on the bottom-left corner
+// of the window and the right group on the bottom-right corner. The
+// butterflies live in a separate "sky" layer in plain screen pixels, so they
+// can wander anywhere on the page, and they land on the garden's flowers
+// by converting a flower's design position to screen position.
 
 const NS = 'http://www.w3.org/2000/svg'
 const HEIGHT = 560
@@ -67,19 +70,30 @@ export function startLivingGarden(svg, { compact = false } = {}) {
 
   const left = el('g')
   const right = el('g')
+  const place = { left: { x: 0, y: 0, s: 1 }, right: { x: 0, y: 0, s: 1 } }
+  let view = { w: 1, h: 1 }
 
   function layout() {
-    const width = Math.max(1, window.innerWidth)
-    svg.setAttribute('viewBox', `0 0 ${width} ${HEIGHT}`)
+    const w = Math.max(1, window.innerWidth)
+    const h = Math.max(1, window.innerHeight)
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`)
     // On narrower laptops there is less room beside the page content, so
     // the garden is drawn a little smaller, still sitting on the bottom edge.
-    const s = compact || width >= 1700 ? 1 : width >= 1440 ? 0.85 : 0.74
-    const lift = HEIGHT * (1 - s)
-    left.setAttribute('transform', `translate(0 ${lift}) scale(${s})`)
-    right.setAttribute('transform', `translate(${width - 1200 * s} ${lift}) scale(${s})`)
-    return width
+    const s = compact || w >= 1700 ? 1 : w >= 1440 ? 0.85 : 0.74
+    const y = h - HEIGHT * s
+    place.left = { x: 0, y, s }
+    place.right = { x: w - 1200 * s, y, s }
+    left.setAttribute('transform', `translate(0 ${y.toFixed(1)}) scale(${s})`)
+    right.setAttribute('transform', `translate(${place.right.x.toFixed(1)} ${y.toFixed(1)}) scale(${s})`)
+    return { w, h }
   }
-  let viewWidth = layout()
+  view = layout()
+
+  // Design position inside the left or right garden -> screen position.
+  const toScreen = (side, x, y) => {
+    const p = side === right ? place.right : place.left
+    return { x: p.x + x * p.s, y: p.y + y * p.s }
+  }
 
   // ---------- wind: one breeze for everything ----------
   function wind(t) {
@@ -214,9 +228,15 @@ export function startLivingGarden(svg, { compact = false } = {}) {
     el('path', { d: 'M36 -26 L39 -24 M33 -24 L36 -22', stroke: '#FFFFFF', 'stroke-width': 1.6, 'stroke-linecap': 'round', opacity: 0.85 }, g)
   }
 
-  function makeButterfly(parent, fill, region, scale) {
-    const shadow = el('ellipse', { rx: 12, ry: 3, fill: C.ink, opacity: compact ? 0 : 0.08 }, parent)
-    const g = el('g', {}, parent)
+  // The sky layer sits above the garden, so butterflies fly in front of it.
+  const sky = el('g')
+  // Butterflies roam the whole window below the header, avoiding the very
+  // bottom where the bottom tab bar sits on phones.
+  const roam = () => [24, Math.max(80, view.w - 24), 190, Math.max(260, view.h - (compact ? 110 : 40))]
+
+  function makeButterfly(fill, scale) {
+    const shadow = el('ellipse', { rx: 12, ry: 3, fill: C.ink, opacity: 0 }, sky)
+    const g = el('g', {}, sky)
     const body = el('g', {}, g)
     const lw = el('g', {}, body)
     const rw = el('g', {}, body)
@@ -228,32 +248,42 @@ export function startLivingGarden(svg, { compact = false } = {}) {
     el('circle', { cy: -11, r: 2.4, fill: C.wingEdge }, body)
     el('ellipse', { cy: -5, rx: 2.8, ry: 5, fill: '#2F5240' }, body)
     el('ellipse', { cy: 9, rx: 1.9, ry: 9.5, fill: C.wingEdge }, body)
-    const x = rnd(region[0], region[1])
-    const y = rnd(region[2], region[3])
+    const r = roam()
+    const x = rnd(r[0], r[1])
+    const y = rnd(r[2], r[3])
     return {
-      g, lw, rw, shadow, side: parent, x, y, vx: 0, vy: 0, angle: -90, phase: rnd(0, 6), region: () => region,
-      scale, state: 'fly', timer: rnd(4, 8), tx: x, ty: y, perch: null, flapRate: 4, glide: 0,
+      g, lw, rw, shadow, x, y, vx: 0, vy: 0, angle: rnd(-180, 180), phase: rnd(0, 6), wander: rnd(0, 100),
+      scale, state: 'fly', timer: rnd(8, 14), tx: x, ty: y, perch: null, flapRate: 4, glide: 0,
     }
   }
 
+  // A new place to fly to: somewhere well away from where it is now, so
+  // it crosses the page instead of circling one spot.
+  function pickTarget(f) {
+    const r = roam()
+    for (let k = 0; k < 8; k++) {
+      const x = rnd(r[0], r[1])
+      const y = rnd(r[2], r[3])
+      if (Math.hypot(x - f.x, y - f.y) > Math.min(view.w, view.h) * 0.45) {
+        f.tx = x
+        f.ty = y
+        return
+      }
+    }
+    f.tx = rnd(r[0], r[1])
+    f.ty = rnd(r[2], r[3])
+  }
+
   const flies = compact
-    ? [(() => {
-        const f = makeButterfly(left, 'url(#lg-butter)', [20, 400, 120, 420], 0.62)
-        // On small screens the butterfly can roam the whole width.
-        f.region = () => [20, Math.max(60, viewWidth - 20), 110, 430]
-        return f
-      })()]
-    : [
-        makeButterfly(left, 'url(#lg-butter)', [20, 280, 160, 430], 0.72),
-        makeButterfly(right, 'url(#lg-mint)', [920, 1180, 110, 400], 0.68),
-        makeButterfly(left, 'url(#lg-rose)', [30, 270, 80, 320], 0.64),
-      ]
+    ? [makeButterfly('url(#lg-butter)', 0.48)]
+    : [makeButterfly('url(#lg-butter)', 0.52), makeButterfly('url(#lg-mint)', 0.5), makeButterfly('url(#lg-rose)', 0.46)]
+  flies.forEach(pickTarget)
 
   function flowerTip(fl) {
     // A flower rotates around the point where its stem meets the ground.
     const a = ((fl.angle || 0) * Math.PI) / 180
     const len = GROUND - fl.top
-    return { x: fl.x + Math.sin(a) * len, y: GROUND - Math.cos(a) * len }
+    return toScreen(fl.side, fl.x + Math.sin(a) * len, GROUND - Math.cos(a) * len)
   }
 
   function steer(f, tx, ty, speed, dt, t) {
@@ -261,8 +291,9 @@ export function startLivingGarden(svg, { compact = false } = {}) {
     const dy = ty - f.y
     const d = Math.hypot(dx, dy) || 1
     const sp = Math.min(speed, d * 2.2)
-    const dvx = (dx / d) * sp + Math.sin(t * 2.3 + f.phase * 0.05) * 9
-    const dvy = (dy / d) * sp + Math.cos(t * 3.1 + f.x * 0.01) * 18
+    // A gentle, lazy drift on top of the heading, not a loop.
+    const dvx = (dx / d) * sp + Math.sin(t * 0.9 + f.wander) * 10
+    const dvy = (dy / d) * sp + Math.cos(t * 2.4 + f.wander) * 12
     f.vx += (dvx - f.vx) * Math.min(1, dt * 2.2)
     f.vy += (dvy - f.vy) * Math.min(1, dt * 2.2)
     f.x += f.vx * dt
@@ -275,21 +306,17 @@ export function startLivingGarden(svg, { compact = false } = {}) {
   }
 
   function moveButterfly(f, dt, t) {
-    const region = f.region()
     f.timer -= dt
     if (f.state === 'fly') {
-      if (Math.hypot(f.tx - f.x, f.ty - f.y) < 26 || Math.random() < dt * 0.25) {
-        f.tx = rnd(region[0], region[1])
-        f.ty = rnd(region[2], region[3])
-      }
+      if (Math.hypot(f.tx - f.x, f.ty - f.y) < 40 || Math.random() < dt * 0.04) pickTarget(f)
+      // Now and then, come down to rest on a flower in the garden.
       if (f.timer <= 0) {
-        const options = flowers.filter((fl) => fl.side === f.side && fl.x >= region[0] - 30 && fl.x <= region[1] + 30)
-        if (options.length) {
-          f.perch = options[Math.floor(Math.random() * options.length)]
+        if (flowers.length && Math.random() < 0.6) {
+          f.perch = flowers[Math.floor(Math.random() * flowers.length)]
           f.state = 'land'
-        } else f.timer = rnd(5, 8)
+        } else f.timer = rnd(8, 14)
       }
-      steer(f, f.tx, f.ty, 52, dt, t)
+      steer(f, f.tx, f.ty, 62, dt, t)
       f.flapRate += (3.6 - f.flapRate) * dt * 3
       // Every so often, hold the wings open and glide for a moment.
       if (f.glide > 0) f.glide -= dt
@@ -311,10 +338,9 @@ export function startLivingGarden(svg, { compact = false } = {}) {
       f.flapRate += (0.6 - f.flapRate) * dt * 4
       if (f.timer <= 0) {
         f.state = 'fly'
-        f.timer = rnd(6, 10)
+        f.timer = rnd(10, 18)
         f.vy = -40
-        f.tx = rnd(region[0], region[1])
-        f.ty = rnd(region[2], region[2] + 120)
+        pickTarget(f)
       }
     }
     if (!(f.state === 'fly' && f.glide > 0)) f.phase += dt * f.flapRate * Math.PI * 2
@@ -328,11 +354,13 @@ export function startLivingGarden(svg, { compact = false } = {}) {
     f.rw.setAttribute('transform', `scale(${open.toFixed(3)} 1)`)
     const bob = f.state === 'perch' || f.glide > 0 ? 0 : -Math.sin(f.phase) * 1.6
     f.g.setAttribute('transform', `translate(${f.x.toFixed(1)} ${(f.y + bob).toFixed(1)}) scale(${f.scale}) rotate(${(f.angle + 90).toFixed(1)})`)
+    // A faint shadow on the grass, only when flying low over the garden.
     if (!compact) {
-      const h = Math.max(0, Math.min(1, (GROUND - f.y) / 400))
-      f.shadow.setAttribute('transform', `translate(${f.x.toFixed(1)} ${GROUND + 2})`)
-      f.shadow.setAttribute('rx', (10 - h * 5).toFixed(1))
-      f.shadow.setAttribute('opacity', (0.12 - h * 0.08).toFixed(3))
+      const ground = view.h - (HEIGHT - GROUND) * place.left.s
+      const h = Math.max(0, Math.min(1, (ground - f.y) / 200))
+      f.shadow.setAttribute('transform', `translate(${f.x.toFixed(1)} ${(ground + 2).toFixed(1)})`)
+      f.shadow.setAttribute('rx', (8 - h * 4).toFixed(1))
+      f.shadow.setAttribute('opacity', (0.1 * (1 - h)).toFixed(3))
     }
   }
 
@@ -473,7 +501,7 @@ export function startLivingGarden(svg, { compact = false } = {}) {
     last = performance.now()
   }
   function onResize() {
-    viewWidth = layout()
+    view = layout()
   }
 
   update(0.016, 0)
