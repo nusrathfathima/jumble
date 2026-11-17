@@ -1,14 +1,16 @@
-// The living garden behind every page: butterflies that wander and land on
-// flowers, a bee visiting blossoms, a ladybug walking along the grass, and
-// grass, flowers, a tree and a kite all moving with one shared breeze.
+// The living garden behind every page: a mixed planting along the whole
+// bottom edge (shrubs, rose bushes, lavender, daisies, ferns, ornamental
+// grasses, foxgloves and sunflowers), a tree and a kite on the right, butterflies that
+// wander and land on blooms, a bee visiting flowers, a ladybug walking along
+// the grass, and everything moving with one shared breeze.
 //
 // It draws straight into an <svg> with plain DOM calls and one
 // requestAnimationFrame loop, rather than through React state, so 60
 // updates a second never re-render any React components.
 //
 // Two layouts:
-//   - full (laptops and wider): a flower bed on the left edge and a tree
-//     with a kite on the right edge, at the bottom of the window.
+//   - full (laptops and wider): the planted border along the bottom, with
+//     the tree and kite in the bottom-right corner.
 //   - compact (phones and tablets): just one butterfly drifting about, so
 //     small screens never feel busy.
 //
@@ -94,13 +96,6 @@ export function startLivingGarden(svg, { compact = false } = {}) {
   }
   view = layout()
 
-  // Design position inside the left or right garden -> screen position.
-  const toScreen = (side, x, y) => {
-    if (side === midBack) return { x, y }
-    const p = side === right ? place.right : place.left
-    return { x: p.x + x * p.s, y: p.y + y * p.s }
-  }
-
   // ---------- wind: one breeze for everything ----------
   function wind(t) {
     const gust = Math.pow(Math.max(0, Math.sin(t * 0.21 + 0.6)), 10) * 1.1
@@ -160,30 +155,6 @@ export function startLivingGarden(svg, { compact = false } = {}) {
       clusters.push({ g, x, y, phase: i * 0.4 })
     })
 
-    // ---------- flowers ----------
-    const sunflower = (parent, x, y, s) => {
-      const g = el('g', {}, parent)
-      el('path', { d: `M0 0 V${GROUND - y}`, stroke: '#4E9A69', 'stroke-width': 5, 'stroke-linecap': 'round' }, g)
-      el('path', { d: 'M0 90 C -26 80, -36 60, -30 50 C -12 54, -2 70, 0 90 Z', fill: C.leaf }, g)
-      el('path', { d: 'M0 130 C 24 120, 34 104, 30 92 C 12 96, 2 112, 0 130 Z', fill: C.leaf }, g)
-      for (let a = 0; a < 360; a += 30) el('ellipse', { cx: 0, cy: -17, rx: 6, ry: 11, fill: C.sun, transform: `rotate(${a})` }, g)
-      el('circle', { r: 12, fill: '#8A5A2B' }, g)
-      el('circle', { r: 5, cx: -3, cy: -3, fill: '#A87440' }, g)
-      flowers.push({ g, x, y, s, top: y - 22 * s, stiff: 1, side: parent, ground: GROUND })
-    }
-    const tulip = (parent, x, y, c, s) => {
-      const g = el('g', {}, parent)
-      el('path', { d: `M0 0 V${(GROUND - y) / s}`, stroke: '#4E9A69', 'stroke-width': 3.5, 'stroke-linecap': 'round' }, g)
-      el('path', { d: 'M0 44 C -14 38, -18 26, -14 20 C -6 24, -1 34, 0 44 Z', fill: C.leafL }, g)
-      el('path', { d: 'M-11 -2 L-11 -16 L-4 -9 L0 -18 L4 -9 L11 -16 L11 -2 C 11 8, -11 8, -11 -2 Z', fill: c }, g)
-      flowers.push({ g, x, y, s, top: y - 16 * s, stiff: 1.6, side: parent, ground: GROUND })
-    }
-    sunflower(left, 95, 330, 1)
-    tulip(left, 170, 452, C.rose, 1)
-    tulip(left, 40, 462, C.sky, 0.9)
-    tulip(left, 240, 470, C.lilac, 0.85)
-    tulip(right, 950, 466, C.sun, 0.9)
-    tulip(right, 1010, 480, C.rose, 0.8)
 
 
   }
@@ -249,70 +220,258 @@ export function startLivingGarden(svg, { compact = false } = {}) {
   }
 
   const flies = compact
-    ? [makeButterfly('url(#lg-butter)', 0.48)]
-    : [makeButterfly('url(#lg-butter)', 0.52), makeButterfly('url(#lg-mint)', 0.5), makeButterfly('url(#lg-rose)', 0.46)]
+    ? [makeButterfly('url(#lg-butter)', 0.38)]
+    : [makeButterfly('url(#lg-butter)', 0.4), makeButterfly('url(#lg-mint)', 0.38), makeButterfly('url(#lg-rose)', 0.36)]
   flies.forEach(pickTarget)
 
-  // ---------- roses ----------
-  // Soft garden colours: rose pink, coral peach, lilac and blush.
+  // ---------- the planted border ----------
+  // Each plant is drawn around its base at (0, 0), growing upwards, and
+  // sways as one piece from its base. Blooms that a butterfly or the bee can
+  // land on are recorded as perch points relative to that base.
+  const plants = []
+  const GREENS = { dark: '#3F7F57', base: '#4E9A69', mid: C.mid, light: C.leaf, pale: '#8ED0A8' }
   const ROSE_COLOURS = [
     ['#FFC2D4', '#FF8FA3', '#D9536F'],
     ['#FFD9C2', '#FFA77A', '#E0703F'],
-    ['#F2E3FF', '#C9B6F5', '#8C6FD1'],
     ['#FFE3EC', '#F7A8C1', '#C94F7C'],
   ]
-  function rose(x, ground, height, palette, s) {
-    const [light, mid, dark] = palette
-    const y = ground - height
-    const g = el('g', {}, midBack)
-    const stem = (ground - y) / s
-    el('path', { d: `M0 4 C 3 ${stem * 0.3}, -3 ${stem * 0.6}, 0 ${stem}`, stroke: '#4E9A69', 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round' }, g)
-    // serrated leaves with a midrib, and a couple of thorns
-    const leaf = (ly, side) => {
-      const lg = el('g', { transform: `translate(0 ${ly}) scale(${side} 1) rotate(-22)` }, g)
-      el('path', { d: 'M0 0 C 4 -6, 10 -9, 16 -8 L 15 -6 L 19 -5 L 17 -3 L 21 -1 C 15 4, 6 4, 0 0 Z', fill: C.mid }, lg)
-      el('path', { d: 'M1 0 C 7 -2, 13 -3, 19 -2', stroke: '#4E9A69', 'stroke-width': 0.9, fill: 'none' }, lg)
-    }
-    leaf(stem * 0.42, 1)
-    leaf(stem * 0.64, -1)
-    el('path', { d: `M1 ${stem * 0.25} l4 -2 l-3 4 Z M-1 ${stem * 0.52} l-4 -2 l3 4 Z`, fill: '#4E9A69' }, g)
-    // sepals under the bloom
-    el('path', { d: 'M0 7 C -6 9, -12 13, -17 11 C -11 8, -6 5, 0 5 Z M0 7 C 6 9, 12 13, 17 11 C 11 8, 6 5, 0 5 Z', fill: C.mid }, g)
-    // the bloom, back to front: deep back petals, a wide cup, two front
-    // petals that curl outwards, then a tight bud with a spiral centre
-    el('path', { d: 'M-16 2 C -20 -8, -12 -19, -4 -17 C 0 -21, 8 -20, 12 -15 C 19 -12, 20 -2, 16 3 C 10 12, -10 12, -16 2 Z', fill: dark }, g)
-    el('path', { d: 'M-14 3 C -16 -6, -10 -14, -2 -13 C 6 -15, 14 -9, 13 2 C 9 9, -9 9, -14 3 Z', fill: mid }, g)
-    el('path', { d: 'M-7 -6 C -7 -12, 0 -14, 6 -10 C 9 -7, 7 -3, 3 -2 C -2 -1, -7 -2, -7 -6 Z', fill: light }, g)
-    el('path', { d: 'M-3 -7 C -1 -11, 5 -10, 4 -6 C 3 -4, -1 -4, -1 -7', stroke: dark, 'stroke-width': 1.2, fill: 'none', 'stroke-linecap': 'round' }, g)
-    el('path', { d: 'M-6 -4 C -5 -1, 0 0, 4 -2', stroke: dark, 'stroke-width': 0.9, fill: 'none', opacity: 0.7, 'stroke-linecap': 'round' }, g)
-    el('path', { d: 'M-15 3 C -14 -3, -9 -6, -2 -5 C -4 0, -3 5, 0 9 C -6 10, -12 8, -15 3 Z', fill: mid, stroke: dark, 'stroke-width': 0.6, 'stroke-opacity': 0.5 }, g)
-    el('path', { d: 'M15 3 C 14 -3, 9 -6, 2 -5 C 4 0, 3 5, 0 9 C 6 10, 12 8, 15 3 Z', fill: mid, stroke: dark, 'stroke-width': 0.6, 'stroke-opacity': 0.5 }, g)
-    el('path', { d: 'M-12 2 C -10 -1, -6 -3, -3 -3 M12 2 C 10 -1, 6 -3, 3 -3', stroke: light, 'stroke-width': 1.2, fill: 'none', opacity: 0.8, 'stroke-linecap': 'round' }, g)
-    el('ellipse', { cx: -2, cy: -11, rx: 3, ry: 1.3, fill: '#FFFFFF', opacity: 0.45 }, g)
-    flowers.push({ g, x, y, s, top: y - 12 * s, stiff: 1.3, side: midBack, ground })
+
+  function perch(plant, dx, dy, kind) {
+    flowers.push({ plant, dx, dy, kind, side: midBack })
   }
 
-  // ---------- the strip along the whole bottom: hills, grass, roses ----------
+  // A leafy mound: overlapping rounded clumps, darker underneath and lighter
+  // where the sun hits, with a few small leaves for texture.
+  function mound(g, w, h, shades) {
+    const blobs = Array.from({ length: Math.round(w / 9) }, () => {
+      const a = Math.PI + Math.random() * Math.PI
+      const k = rnd(0.35, 1)
+      const r = rnd(h * 0.28, h * 0.42)
+      return { x: Math.cos(a) * (w / 2 - r * 0.6) * k, y: Math.min(-r * 0.6, Math.sin(a) * (h - r) * k), r }
+    })
+    blobs.forEach((o) => el('circle', { cx: o.x + 2, cy: o.y + 5, r: o.r, fill: shades[0] }, g))
+    blobs.forEach((o) => el('circle', { cx: o.x, cy: o.y, r: o.r * 0.9, fill: shades[1] }, g))
+    blobs.filter((o) => o.x < w * 0.15).slice(0, 5).forEach((o) => el('circle', { cx: o.x - o.r * 0.25, cy: o.y - o.r * 0.3, r: o.r * 0.55, fill: shades[2] }, g))
+    for (let i = 0; i < w / 6; i++) {
+      const x = rnd(-w * 0.45, w * 0.45)
+      const y = -rnd(4, h * 0.95) * Math.cos((x / (w / 2)) * 1.2)
+      el('ellipse', { cx: x, cy: Math.min(-3, y), rx: 2.6, ry: 1.4, fill: shades[3], opacity: 0.55, transform: `rotate(${rnd(-50, 50).toFixed(0)} ${x.toFixed(1)} ${Math.min(-3, y).toFixed(1)})` }, g)
+    }
+  }
+
+  function roseBloom(g, x, y, scale, palette) {
+    const [light, mid, dark] = palette
+    const b = el('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${scale})` }, g)
+    el('path', { d: 'M-16 2 C -20 -8, -12 -19, -4 -17 C 0 -21, 8 -20, 12 -15 C 19 -12, 20 -2, 16 3 C 10 12, -10 12, -16 2 Z', fill: dark }, b)
+    el('path', { d: 'M-14 3 C -16 -6, -10 -14, -2 -13 C 6 -15, 14 -9, 13 2 C 9 9, -9 9, -14 3 Z', fill: mid }, b)
+    el('path', { d: 'M-7 -6 C -7 -12, 0 -14, 6 -10 C 9 -7, 7 -3, 3 -2 C -2 -1, -7 -2, -7 -6 Z', fill: light }, b)
+    el('path', { d: 'M-3 -7 C -1 -11, 5 -10, 4 -6 C 3 -4, -1 -4, -1 -7', stroke: dark, 'stroke-width': 1.2, fill: 'none', 'stroke-linecap': 'round' }, b)
+    el('path', { d: 'M-15 3 C -14 -3, -9 -6, -2 -5 C -4 0, -3 5, 0 9 C -6 10, -12 8, -15 3 Z', fill: mid, stroke: dark, 'stroke-width': 0.6, 'stroke-opacity': 0.5 }, b)
+    el('path', { d: 'M15 3 C 14 -3, 9 -6, 2 -5 C 4 0, 3 5, 0 9 C 6 10, 12 8, 15 3 Z', fill: mid, stroke: dark, 'stroke-width': 0.6, 'stroke-opacity': 0.5 }, b)
+    el('ellipse', { cx: -2, cy: -11, rx: 3, ry: 1.3, fill: '#FFFFFF', opacity: 0.45 }, b)
+  }
+
+  const DRAW = {
+    // A clipped evergreen shrub: no flowers, just a full, rounded shape.
+    shrub(g) {
+      const w = rnd(60, 84)
+      mound(g, w, rnd(34, 48), [GREENS.dark, GREENS.base, GREENS.mid, GREENS.pale])
+      return { w, stiff: 3.2 }
+    },
+    // A rose bush: a deep green leafy mound with a few open roses and buds.
+    roses(g, plant) {
+      const w = rnd(68, 86)
+      const h = rnd(46, 58)
+      mound(g, w, h, [GREENS.dark, GREENS.base, GREENS.mid, GREENS.light])
+      const palette = ROSE_COLOURS[Math.floor(Math.random() * ROSE_COLOURS.length)]
+      const spots = [[-w * 0.28, -h * 0.7], [w * 0.05, -h * 0.92], [w * 0.3, -h * 0.62], [-w * 0.05, -h * 0.5]]
+      spots.slice(0, Math.random() < 0.5 ? 3 : 4).forEach(([x, y], i) => {
+        if (i === 3) {
+          // a closed bud
+          el('ellipse', { cx: x, cy: y, rx: 4, ry: 6, fill: palette[2] }, g)
+          el('path', { d: `M${x - 5} ${y + 3} Q ${x} ${y - 2} ${x + 5} ${y + 3} Q ${x} ${y + 1} ${x - 5} ${y + 3} Z`, fill: GREENS.base }, g)
+        } else {
+          roseBloom(g, x, y, rnd(0.55, 0.7), palette)
+          perch(plant, x, y - 7, 'rose')
+        }
+      })
+      return { w, stiff: 2.6 }
+    },
+    // Lavender: a fan of slim grey-green stems with purple flower spikes.
+    lavender(g, plant) {
+      const n = Math.round(rnd(9, 13))
+      for (let i = 0; i < n; i++) el('path', { d: `M${rnd(-8, 8).toFixed(1)} 0 q ${rnd(-6, 6).toFixed(1)} -9 ${rnd(-12, 12).toFixed(1)} -${rnd(12, 20).toFixed(1)}`, stroke: '#9DB8A0', 'stroke-width': 2, fill: 'none', 'stroke-linecap': 'round' }, g)
+      let tallest = null
+      for (let i = 0; i < n; i++) {
+        const a = ((i / (n - 1)) * 50 - 25 + rnd(-4, 4)) * (Math.PI / 180)
+        const len = rnd(58, 88)
+        const tx = Math.sin(a) * len
+        const ty = -Math.cos(a) * len
+        el('path', { d: `M0 0 Q ${(tx * 0.3).toFixed(1)} ${(ty * 0.5).toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)}`, stroke: '#8FA88F', 'stroke-width': 1.4, fill: 'none' }, g)
+        for (let k = 0; k < 7; k++) {
+          const f = 0.66 + k * 0.05
+          const px = tx * f + (k % 2 ? 1.6 : -1.6)
+          const py = ty * f
+          el('ellipse', { cx: px.toFixed(1), cy: py.toFixed(1), rx: 2.2, ry: 3.1, fill: k % 3 ? '#9B87D9' : '#B9A6EE', transform: `rotate(${((a * 180) / Math.PI).toFixed(0)} ${px.toFixed(1)} ${py.toFixed(1)})` }, g)
+        }
+        if (!tallest || ty < tallest.y) tallest = { x: tx, y: ty }
+      }
+      perch(plant, tallest.x, tallest.y - 3, 'lavender')
+      return { w: 50, stiff: 1.2 }
+    },
+    // A clump of white daisies on slender stems, with leaves at the base.
+    daisies(g, plant) {
+      for (let i = 0; i < 5; i++) {
+        const side = i % 2 ? 1 : -1
+        el('path', { d: `M0 0 C ${side * 6} -6, ${side * 14} -10, ${side * rnd(16, 22)} -${rnd(10, 16).toFixed(1)} C ${side * 10} -6, ${side * 4} -3, 0 0 Z`, fill: GREENS.mid }, g)
+      }
+      const n = Math.round(rnd(5, 7))
+      for (let i = 0; i < n; i++) {
+        const hx = rnd(-22, 22)
+        const hy = -rnd(28, 52)
+        el('path', { d: `M${(hx * 0.2).toFixed(1)} 0 Q ${(hx * 0.3).toFixed(1)} ${(hy * 0.5).toFixed(1)} ${hx.toFixed(1)} ${hy.toFixed(1)}`, stroke: GREENS.base, 'stroke-width': 1.6, fill: 'none' }, g)
+        const head = el('g', { transform: `translate(${hx.toFixed(1)} ${hy.toFixed(1)}) rotate(${rnd(-20, 20).toFixed(0)}) scale(1.5 1.2)` }, g)
+        for (let a = 0; a < 360; a += 30) el('ellipse', { cx: 0, cy: -5.5, rx: 1.9, ry: 5, fill: '#FFFFFF', stroke: '#E3E9E5', 'stroke-width': 0.5, transform: `rotate(${a})` }, head)
+        el('circle', { r: 3.4, fill: '#FFC94A' }, head)
+        el('circle', { r: 1.4, cx: 0.8, cy: 0.8, fill: '#E0A62A' }, head)
+        perch(plant, hx, hy - 3, 'daisy')
+      }
+      return { w: 48, stiff: 1.5 }
+    },
+    // A fern: arching fronds with leaflets that get smaller towards the tip.
+    fern(g) {
+      const n = Math.round(rnd(5, 7))
+      for (let i = 0; i < n; i++) {
+        const a = ((i / (n - 1)) * 120 - 60 + rnd(-6, 6)) * (Math.PI / 180)
+        const len = rnd(44, 64) * (1 - Math.abs(a) * 0.25)
+        const ex = Math.sin(a) * len
+        const ey = -Math.cos(a) * len * 0.75 + Math.abs(Math.sin(a)) * 12
+        const cx = Math.sin(a) * len * 0.45
+        const cy = -len * 0.85
+        el('path', { d: `M0 0 Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`, stroke: GREENS.base, 'stroke-width': 1.3, fill: 'none' }, g)
+        for (let k = 1; k < 10; k++) {
+          const tt = k / 10
+          const px = 2 * (1 - tt) * tt * cx + tt * tt * ex
+          const py = 2 * (1 - tt) * tt * cy + tt * tt * ey
+          const size = 6.5 * (1 - tt * 0.7)
+          const ang = (Math.atan2(2 * (1 - tt) * (cy) + 2 * tt * (ey - cy), 2 * (1 - tt) * cx + 2 * tt * (ex - cx)) * 180) / Math.PI
+          for (const side of [-1, 1]) {
+            el('ellipse', { cx: (px).toFixed(1), cy: (py).toFixed(1), rx: (size).toFixed(1), ry: (size * 0.36).toFixed(1), fill: k % 2 ? GREENS.mid : GREENS.light, transform: `rotate(${(ang + side * 60).toFixed(0)} ${px.toFixed(1)} ${py.toFixed(1)}) translate(${(size * 0.8).toFixed(1)} 0)` }, g)
+          }
+        }
+      }
+      return { w: 70, stiff: 1.7 }
+    },
+    // Ornamental grass: long, soft blades in sage and straw with feathery plumes.
+    grasses(g) {
+      const n = Math.round(rnd(14, 20))
+      for (let i = 0; i < n; i++) {
+        const a = rnd(-30, 30) * (Math.PI / 180)
+        const len = rnd(55, 100)
+        const ex = Math.sin(a) * len + Math.sign(a) * 10
+        const ey = -Math.cos(a) * len
+        const colour = ['#A8C97A', '#8FB86A', '#BFD39A', '#9BBF85'][i % 4]
+        el('path', { d: `M-1.5 0 Q ${(ex * 0.3).toFixed(1)} ${(ey * 0.6).toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)} Q ${(ex * 0.3 + 2).toFixed(1)} ${(ey * 0.6).toFixed(1)} 1.5 0 Z`, fill: colour }, g)
+      }
+      for (let i = 0; i < 3; i++) {
+        const a = rnd(-14, 14) * (Math.PI / 180)
+        const len = rnd(85, 115)
+        const ex = Math.sin(a) * len
+        const ey = -Math.cos(a) * len
+        el('path', { d: `M0 0 Q ${(ex * 0.2).toFixed(1)} ${(ey * 0.5).toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`, stroke: '#C9B98A', 'stroke-width': 1, fill: 'none' }, g)
+        el('ellipse', { cx: ex.toFixed(1), cy: (ey + 8).toFixed(1), rx: 3.2, ry: 10, fill: '#E9DDB0', opacity: 0.9, transform: `rotate(${((a * 180) / Math.PI).toFixed(0)} ${ex.toFixed(1)} ${(ey + 8).toFixed(1)})` }, g)
+      }
+      return { w: 52, stiff: 0.8 }
+    },
+    // Sunflowers: one or two tall, sturdy stems with big heart-shaped
+    // leaves and a golden head that nods slightly towards the sun.
+    sunflower(g, plant) {
+      const stems = Math.random() < 0.55 ? 1 : 2
+      for (let sIdx = 0; sIdx < stems; sIdx++) {
+        const bx = stems === 2 ? (sIdx ? 12 : -10) : 0
+        const len = rnd(120, 150) * (sIdx ? 0.8 : 1)
+        const lean = rnd(-8, 8)
+        const hx = bx + lean
+        const hy = -len
+        el('path', { d: `M${bx} 0 C ${bx + 2} ${(-len * 0.4).toFixed(1)}, ${(hx - 2).toFixed(1)} ${(-len * 0.75).toFixed(1)}, ${hx.toFixed(1)} ${(hy + 14).toFixed(1)}`, stroke: GREENS.base, 'stroke-width': 3.6, fill: 'none', 'stroke-linecap': 'round' }, g)
+        // big leaves on alternate sides, drooping a little
+        for (let k = 0; k < 3; k++) {
+          const ly = -len * (0.25 + k * 0.2)
+          const side = (k + sIdx) % 2 ? 1 : -1
+          const lg = el('g', { transform: `translate(${bx + side * 1.5} ${ly.toFixed(1)}) scale(${side} 1) rotate(${rnd(10, 25).toFixed(0)})` }, g)
+          el('path', { d: 'M0 0 C 6 -9, 18 -12, 26 -6 C 30 -2, 28 6, 22 9 C 14 12, 5 7, 0 0 Z', fill: k % 2 ? GREENS.mid : GREENS.base }, lg)
+          el('path', { d: 'M1 0 C 9 -3, 17 -3, 25 0', stroke: GREENS.dark, 'stroke-width': 0.8, fill: 'none', opacity: 0.6 }, lg)
+        }
+        // the head: two rings of golden petals around a seedy brown centre
+        const head = el('g', { transform: `translate(${hx.toFixed(1)} ${hy.toFixed(1)}) rotate(${(lean * 1.5 + rnd(-8, 8)).toFixed(0)}) scale(1 0.92)` }, g)
+        for (let a = 0; a < 360; a += 22.5) el('ellipse', { cx: 0, cy: -17, rx: 4.6, ry: 10, fill: '#F2B33D', transform: `rotate(${a + 11})` }, head)
+        for (let a = 0; a < 360; a += 22.5) el('ellipse', { cx: 0, cy: -16, rx: 4.4, ry: 9.5, fill: '#FFC94A', transform: `rotate(${a})` }, head)
+        el('circle', { r: 11.5, fill: '#6B4423' }, head)
+        el('circle', { r: 8, fill: '#8A5A2B' }, head)
+        for (let k = 0; k < 14; k++) {
+          const a = k * 2.4
+          const r = 1.6 * Math.sqrt(k + 1)
+          el('circle', { cx: (Math.cos(a) * r).toFixed(1), cy: (Math.sin(a) * r).toFixed(1), r: 0.9, fill: '#5A381C', opacity: 0.8 }, head)
+        }
+        el('ellipse', { cx: -3, cy: -4, rx: 3, ry: 1.6, fill: '#FFFFFF', opacity: 0.18 }, head)
+        perch(plant, hx, hy - 4, 'sunflower')
+      }
+      return { w: 56, stiff: 1.9 }
+    },
+    // Foxgloves: tall spires of hanging bells, pink and lilac, with a rosette
+    // of broad leaves at the bottom.
+    foxglove(g, plant) {
+      for (let i = 0; i < 6; i++) {
+        const side = i % 2 ? 1 : -1
+        el('path', { d: `M0 0 C ${side * 8} -4, ${side * 18} -8, ${side * rnd(20, 26).toFixed(1)} -${rnd(6, 12).toFixed(1)} C ${side * 14} -2, ${side * 6} 1, 0 0 Z`, fill: i % 3 ? GREENS.mid : GREENS.base }, g)
+      }
+      const colours = Math.random() < 0.5 ? ['#F7A8C1', '#E58BB0'] : ['#D9C8F7', '#B59BEB']
+      const stems = Math.random() < 0.5 ? 1 : 2
+      for (let sIdx = 0; sIdx < stems; sIdx++) {
+        const bx = stems === 2 ? (sIdx ? 7 : -7) : 0
+        const len = rnd(95, 130) * (sIdx ? 0.82 : 1)
+        el('path', { d: `M${bx} 0 Q ${bx + 2} ${(-len * 0.5).toFixed(1)} ${bx} ${(-len).toFixed(1)}`, stroke: GREENS.base, 'stroke-width': 2, fill: 'none' }, g)
+        for (let k = 0; k < 12; k++) {
+          const f = 0.36 + k * 0.054
+          const y = -len * f
+          const size = 1.7 - k * 0.11
+          const side = k % 2 ? 1 : -1
+          const bell = el('g', { transform: `translate(${(bx + side * 4).toFixed(1)} ${y.toFixed(1)}) scale(${(side * size).toFixed(2)} ${size.toFixed(2)})` }, g)
+          if (k > 9) {
+            el('ellipse', { cx: 1, cy: 1, rx: 2.5, ry: 3.5, fill: GREENS.light }, bell)
+          } else {
+            el('path', { d: 'M0 -3 C 6 -4, 10 0, 10 5 L 7 6 C 6 3, 3 2, 0 3 Z', fill: colours[k % 2] }, bell)
+            el('circle', { cx: 7.5, cy: 3.5, r: 0.8, fill: '#FFFFFF', opacity: 0.8 }, bell)
+          }
+        }
+        if (sIdx === 0) perch(plant, bx, -len * 0.7, 'foxglove')
+      }
+      return { w: 42, stiff: 1.3 }
+    },
+  }
+
+  // ---------- the strip along the whole bottom ----------
   let groundY = 0
   function buildMiddle() {
     if (compact) return
     const s = place.left.s
     groundY = place.left.y + GROUND * s
-    // forget the old roses and grass (this runs again when the window resizes)
-    for (let i = flowers.length - 1; i >= 0; i--) if (flowers[i].side === midBack) flowers.splice(i, 1)
+    // forget the old border (this runs again when the window resizes)
+    flowers.length = 0
+    plants.length = 0
     for (const f of flies) {
-      if (f.perch && f.perch.side === midBack) {
+      if (f.perch) {
         f.state = 'fly'
         f.perch = null
         pickTarget(f)
       }
     }
-    if (bee && bee.target && bee.target.side === midBack) bee.target = null
+    if (bee) bee.target = null
     blades.length = 0
     midBack.replaceChildren()
     midFront.replaceChildren()
 
-    // gently rolling hills across the full width
+    // gently rolling ground across the full width
     let d = `M0 ${view.h}`
     for (let x = 0; x <= view.w + 20; x += 20) {
       const y = groundY - 14 * s - 9 * Math.sin(x / 170) - 6 * Math.sin(x / 83 + 1)
@@ -320,19 +479,43 @@ export function startLivingGarden(svg, { compact = false } = {}) {
     }
     el('path', { d: `${d} L${view.w + 20} ${view.h} Z`, fill: C.leafL }, midBack)
 
-    // rose bushes between the two corner gardens
-    const from = 300 * s + 30
-    const to = place.right.x + 900 * s - 30
-    for (let x = from; x < to; x += rnd(70, 125)) {
-      const palette = ROSE_COLOURS[Math.floor(Math.random() * ROSE_COLOURS.length)]
-      const scale = s * rnd(1.05, 1.3)
-      rose(x, groundY, rnd(58, 96) * s, palette, scale)
-      if (Math.random() < 0.45) rose(x + rnd(18, 30) * s, groundY, rnd(40, 64) * s, palette, scale * 0.85)
+    // Plant the border from left to right, like a real bed: plants of
+    // different kinds side by side, slightly overlapping, never the same
+    // kind twice in a row, with more greenery than flowers.
+    const kinds = ['shrub', 'roses', 'roses', 'lavender', 'lavender', 'daisies', 'fern', 'fern', 'grasses', 'grasses', 'foxglove', 'sunflower', 'sunflower']
+    const trunk = place.right.x + 1085 * s
+    let x = rnd(10, 40) * s
+    let prev = null
+    let lastShrub = -1e9
+    const planned = []
+    while (x < view.w + 20) {
+      let kind
+      do kind = kinds[Math.floor(Math.random() * kinds.length)]
+      while (kind === prev)
+      // keep tall plants away from the tree trunk
+      if (Math.abs(x - trunk) < 60 * s && (kind === 'foxglove' || kind === 'grasses' || kind === 'roses' || kind === 'sunflower')) kind = 'fern'
+      // Plain green shrubs are kept rare: at most one every ~450px.
+      if (kind === 'shrub' && x - lastShrub < 450 * s) kind = prev === 'fern' ? 'daisies' : 'fern'
+      if (kind === 'shrub') lastShrub = x
+      prev = kind
+      const size = s * rnd(0.85, 1.1)
+      planned.push({ kind, x, size })
+      const width = { shrub: 90, roses: 80, lavender: 50, daisies: 48, fern: 70, grasses: 52, foxglove: 42, sunflower: 56 }[kind]
+      x += width * size * rnd(0.75, 1.05)
+    }
+    // Draw taller plants first so the lower ones sit in front of them.
+    const height = { sunflower: 6, foxglove: 5, grasses: 4, lavender: 3, roses: 2, shrub: 1, daisies: 0, fern: 0 }
+    planned.sort((a, b) => height[b.kind] - height[a.kind])
+    for (const p of planned) {
+      const g = el('g', {}, midBack)
+      const plant = { g, x: p.x, ground: groundY + rnd(0, 4) * s, s: p.size, stiff: 1, angle: 0, seed: Math.random() * 6 }
+      plant.stiff = DRAW[p.kind](g, plant).stiff
+      plants.push(plant)
     }
 
-    // grass along the whole bottom, in front of every stem
-    for (let x = -4; x < view.w + 8; x += 7) {
-      blades.push({ x, h: rnd(14, 30) * s, ground: groundY, p: el('path', { fill: Math.random() < 0.5 ? C.leaf : C.mid }, midFront), seed: Math.random() * 6 })
+    // short lawn grass along the whole bottom, in front of every stem
+    for (let x = -4; x < view.w + 8; x += 8) {
+      blades.push({ x, h: rnd(10, 20) * s, ground: groundY, p: el('path', { fill: Math.random() < 0.5 ? C.leaf : C.mid }, midFront), seed: Math.random() * 6 })
     }
   }
 
@@ -366,10 +549,12 @@ export function startLivingGarden(svg, { compact = false } = {}) {
   buildMiddle()
 
   function flowerTip(fl) {
-    // A flower rotates around the point where its stem meets the ground.
-    const a = ((fl.angle || 0) * Math.PI) / 180
-    const len = fl.ground - fl.top
-    return toScreen(fl.side, fl.x + Math.sin(a) * len, fl.ground - Math.cos(a) * len)
+    // A bloom moves with its plant, which sways around its base.
+    const p = fl.plant
+    const a = ((p.angle || 0) * Math.PI) / 180
+    const x = fl.dx * Math.cos(a) - fl.dy * Math.sin(a)
+    const y = fl.dx * Math.sin(a) + fl.dy * Math.cos(a)
+    return { x: p.x + x * p.s, y: p.ground + y * p.s }
   }
 
   function steer(f, tx, ty, speed, dt, t) {
@@ -457,7 +642,7 @@ export function startLivingGarden(svg, { compact = false } = {}) {
       const options = flowers.filter((f) => f !== bee.last)
       if (!options.length) return
       // Roses are its favourite.
-      const roses = options.filter((f) => f.side === midBack)
+      const roses = options.filter((f) => f.kind === 'rose')
       const pool = roses.length && Math.random() < 0.7 ? roses : options
       bee.target = pool[Math.floor(Math.random() * pool.length)]
       bee.state = 'fly'
@@ -519,9 +704,9 @@ export function startLivingGarden(svg, { compact = false } = {}) {
       b.p.setAttribute('d', `M${b.x - 3} ${(g + 6).toFixed(1)} Q${(b.x - 1 + bend * 0.4).toFixed(1)} ${midY} ${(b.x + bend).toFixed(1)} ${tipY.toFixed(1)} Q${(b.x + 1 + bend * 0.4).toFixed(1)} ${midY} ${b.x + 3} ${(g + 6).toFixed(1)} Z`)
     }
 
-    for (const f of flowers) {
-      f.angle = (wind(t - f.x / 500) * 4 + Math.sin(t * 1.3 + f.x) * 1.2) / f.stiff
-      f.g.setAttribute('transform', `translate(${f.x.toFixed(1)} ${f.y.toFixed(1)}) scale(${f.s.toFixed(3)}) rotate(${f.angle.toFixed(2)} 0 ${((f.ground - f.y) / f.s).toFixed(1)})`)
+    for (const p of plants) {
+      p.angle = (wind(t - p.x / 500) * 3.2 + Math.sin(t * 1.3 + p.seed) * 1) / p.stiff
+      p.g.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.ground.toFixed(1)}) scale(${p.s.toFixed(3)}) rotate(${p.angle.toFixed(2)})`)
     }
 
     if (tree) {
